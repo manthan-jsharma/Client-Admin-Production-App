@@ -6,8 +6,16 @@ export interface User {
   role: 'admin' | 'client';
   name: string;
   phone?: string;
-  avatar?: string;
   company?: string;
+  // New fields for auth & profile system
+  businessName?: string;
+  website?: string;
+  about?: string;
+  profilePicture?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  approvalFeedback?: string;
+  approvedAt?: Date;
+  addedByAdmin?: boolean; // true when admin manually created the account
   createdAt?: Date;
   updatedAt?: Date;
 }

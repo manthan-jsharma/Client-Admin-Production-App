@@ -1,11 +1,9 @@
 import * as crypto from 'crypto';
-
-// For production, use bcrypt: import bcrypt from 'bcryptjs'
-// For now, using crypto for placeholder implementation
+import bcrypt from 'bcryptjs';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key_change_in_production_12345';
+const BCRYPT_ROUNDS = 12;
 
-// Simple JWT implementation (for production, use jsonwebtoken package)
 interface JWTPayload {
   userId: string;
   email: string;
@@ -14,27 +12,19 @@ interface JWTPayload {
   exp?: number;
 }
 
-// Hash password (placeholder - in production use bcrypt)
-export function hashPassword(password: string): string {
-  // Simple hash for development - DO NOT USE IN PRODUCTION
-  return crypto
-    .createHash('sha256')
-    .update(password + JWT_SECRET)
-    .digest('hex');
+// Hash password with bcrypt
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, BCRYPT_ROUNDS);
 }
 
-// Compare password (placeholder)
-export function comparePassword(password: string, hash: string): boolean {
-  return hashPassword(password) === hash;
+// Compare password with bcrypt hash
+export async function comparePassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
 }
 
 // Create JWT token
 export function createToken(payload: JWTPayload): string {
-  const header = {
-    alg: 'HS256',
-    typ: 'JWT'
-  };
-
+  const header = { alg: 'HS256', typ: 'JWT' };
   const now = Math.floor(Date.now() / 1000);
   const tokenPayload = {
     ...payload,
@@ -57,52 +47,51 @@ export function createToken(payload: JWTPayload): string {
 export function verifyToken(token: string): JWTPayload | null {
   try {
     const [encodedHeader, encodedPayload, signature] = token.split('.');
+    if (!encodedHeader || !encodedPayload || !signature) return null;
 
-    if (!encodedHeader || !encodedPayload || !signature) {
-      return null;
-    }
-
-    // Verify signature
     const expectedSignature = crypto
       .createHmac('sha256', JWT_SECRET)
       .update(`${encodedHeader}.${encodedPayload}`)
       .digest('base64url');
 
-    if (signature !== expectedSignature) {
-      return null;
-    }
+    if (signature !== expectedSignature) return null;
 
-    // Decode payload
     const payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString());
-
-    // Check expiration
     const now = Math.floor(Date.now() / 1000);
-    if (payload.exp && payload.exp < now) {
-      return null;
-    }
+    if (payload.exp && payload.exp < now) return null;
 
     return payload as JWTPayload;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
 
 // Extract token from Authorization header
-export function extractToken(authHeader?: string): string | null {
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null;
-  }
+export function extractToken(authHeader?: string | null): string | null {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
   return authHeader.substring(7);
 }
 
 // Validate email
 export function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 // Validate password strength
 export function isValidPassword(password: string): boolean {
-  // At least 8 characters, 1 uppercase, 1 lowercase, 1 number
   return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(password);
 }
+
+// Validate URL
+export function isValidUrl(url: string): boolean {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Allowed image MIME types for uploads
+export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+export const MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB

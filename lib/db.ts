@@ -1,9 +1,9 @@
 // Mock Database Implementation
-// In production, replace with MongoDB connection using mongoose or mongodb package
+// In production, replace with MongoDB/PostgreSQL using mongoose or prisma
 // This allows the app to work without external dependencies initially
 
+import bcrypt from 'bcryptjs';
 import { User, Project, ChatMessage, Payment, RoadmapItem, SetupItem } from './types';
-import { hashPassword } from './auth';
 
 interface StorageData {
   users: User[];
@@ -13,7 +13,6 @@ interface StorageData {
   setupItems: SetupItem[];
 }
 
-// In-memory storage for development
 const storage: StorageData = {
   users: [],
   projects: [],
@@ -22,39 +21,45 @@ const storage: StorageData = {
   setupItems: []
 };
 
-// Initialize with sample data
+// Pre-computed bcrypt hash for demo password "Test1234"
+// bcrypt.hashSync is used here only for seeding, not in request handlers
+const DEMO_PASSWORD_HASH = bcrypt.hashSync('Test1234', 10);
+
 function initializeSampleData() {
   if (storage.users.length > 0) return;
-
-  // Sample users with properly hashed passwords
-  // Demo passwords: "Test1234" for both accounts
-  const demoPasswordHash = hashPassword('Test1234');
 
   const adminUser: User = {
     _id: 'admin-1',
     email: 'admin@example.com',
-    password: demoPasswordHash,
+    password: DEMO_PASSWORD_HASH,
     role: 'admin',
     name: 'Admin User',
     phone: '+1-555-0100',
     company: 'Agency Inc',
+    status: 'approved',
+    approvedAt: new Date(),
     createdAt: new Date()
   };
 
   const clientUser: User = {
     _id: 'client-1',
     email: 'client@example.com',
-    password: demoPasswordHash,
+    password: DEMO_PASSWORD_HASH,
     role: 'client',
     name: 'Client User',
     phone: '+1-555-0101',
     company: 'Client Corp',
+    businessName: 'Client Corp',
+    about: 'A growing technology company.',
+    website: 'https://clientcorp.example.com',
+    status: 'approved',
+    approvedAt: new Date(),
+    addedByAdmin: true,
     createdAt: new Date()
   };
 
   storage.users.push(adminUser, clientUser);
 
-  // Sample project
   const project: Project = {
     _id: 'project-1',
     clientId: 'client-1',
@@ -71,7 +76,6 @@ function initializeSampleData() {
 
   storage.projects.push(project);
 
-  // Sample setup items
   const setupItems: SetupItem[] = [
     { _id: 'setup-1', projectId: 'project-1', itemNumber: 1, title: 'Brand Guidelines', completed: true, completedAt: new Date() },
     { _id: 'setup-2', projectId: 'project-1', itemNumber: 2, title: 'Logo Files', completed: true, completedAt: new Date() },
@@ -82,7 +86,6 @@ function initializeSampleData() {
 
   storage.setupItems.push(...setupItems);
 
-  // Sample payments
   const payment: Payment = {
     _id: 'payment-1',
     projectId: 'project-1',
@@ -102,7 +105,6 @@ function initializeSampleData() {
 function generateSampleRoadmap(projectId: string): RoadmapItem[] {
   const roadmap: RoadmapItem[] = [];
   const startDate = new Date();
-  
   for (let day = 1; day <= 14; day++) {
     roadmap.push({
       _id: `roadmap-${day}`,
@@ -117,11 +119,10 @@ function generateSampleRoadmap(projectId: string): RoadmapItem[] {
       createdAt: new Date(startDate.getTime() + day * 24 * 60 * 60 * 1000)
     });
   }
-  
   return roadmap;
 }
 
-function generateSampleProgress(): any[] {
+function generateSampleProgress() {
   const progress = [];
   for (let i = 0; i < 3; i++) {
     progress.push({
@@ -133,10 +134,11 @@ function generateSampleProgress(): any[] {
   return progress;
 }
 
-// User operations
+// ─── User Operations ──────────────────────────────────────────────────────────
+
 export async function getUserByEmail(email: string): Promise<User | null> {
   initializeSampleData();
-  return storage.users.find(u => u.email === email) || null;
+  return storage.users.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
 }
 
 export async function getUserById(id: string): Promise<User | null> {
@@ -152,7 +154,46 @@ export async function createUser(user: User): Promise<User> {
   return user;
 }
 
-// Project operations
+export async function updateUserProfile(id: string, updates: Partial<User>): Promise<User | null> {
+  initializeSampleData();
+  const user = storage.users.find(u => u._id === id);
+  if (!user) return null;
+  // Never allow updating password, role, status, or email this way
+  const { password, role, status, email, _id, ...safeUpdates } = updates;
+  Object.assign(user, safeUpdates, { updatedAt: new Date() });
+  return user;
+}
+
+// ─── Client Approval Operations ──────────────────────────────────────────────
+
+export async function approveClient(userId: string): Promise<User | null> {
+  initializeSampleData();
+  const user = storage.users.find(u => u._id === userId);
+  if (!user || user.role !== 'client') return null;
+  user.status = 'approved';
+  user.approvedAt = new Date();
+  user.approvalFeedback = undefined;
+  user.updatedAt = new Date();
+  return user;
+}
+
+export async function rejectClient(userId: string, feedback: string): Promise<User | null> {
+  initializeSampleData();
+  const user = storage.users.find(u => u._id === userId);
+  if (!user || user.role !== 'client') return null;
+  user.status = 'rejected';
+  user.approvalFeedback = feedback;
+  user.updatedAt = new Date();
+  return user;
+}
+
+export async function getPendingClients(): Promise<User[]> {
+  initializeSampleData();
+  return storage.users.filter(u => u.role === 'client' && u.status === 'pending');
+}
+
+// ─── Project Operations ───────────────────────────────────────────────────────
+
 export async function getProjectsByUserId(userId: string, role: string): Promise<Project[]> {
   initializeSampleData();
   if (role === 'admin') {
@@ -182,13 +223,14 @@ export async function updateProject(id: string, updates: Partial<Project>): Prom
   return project;
 }
 
-// Chat operations
+// ─── Chat Operations ──────────────────────────────────────────────────────────
+
 export async function getProjectMessages(projectId: string, limit: number = 50): Promise<ChatMessage[]> {
   initializeSampleData();
   return storage.messages
     .filter(m => m.projectId === projectId)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, limit);
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    .slice(-limit);
 }
 
 export async function createMessage(message: ChatMessage): Promise<ChatMessage> {
@@ -198,7 +240,8 @@ export async function createMessage(message: ChatMessage): Promise<ChatMessage> 
   return message;
 }
 
-// Payment operations
+// ─── Payment Operations ───────────────────────────────────────────────────────
+
 export async function getProjectPayments(projectId: string): Promise<Payment[]> {
   initializeSampleData();
   return storage.payments.filter(p => p.projectId === projectId);
@@ -220,21 +263,27 @@ export async function updatePayment(id: string, updates: Partial<Payment>): Prom
   return payment;
 }
 
-// Setup items operations
+// ─── Setup Items Operations ───────────────────────────────────────────────────
+
 export async function getProjectSetupItems(projectId: string): Promise<SetupItem[]> {
   initializeSampleData();
-  return storage.setupItems.filter(s => s.projectId === projectId).sort((a, b) => a.itemNumber - b.itemNumber);
+  return storage.setupItems
+    .filter(s => s.projectId === projectId)
+    .sort((a, b) => a.itemNumber - b.itemNumber);
 }
 
 export async function updateSetupItem(id: string, updates: Partial<SetupItem>): Promise<SetupItem | null> {
   initializeSampleData();
   const item = storage.setupItems.find(s => s._id === id);
   if (!item) return null;
-  Object.assign(item, updates, { completedAt: updates.completed ? new Date() : undefined });
+  Object.assign(item, updates, {
+    completedAt: updates.completed ? new Date() : undefined
+  });
   return item;
 }
 
-// Roadmap operations
+// ─── Roadmap Operations ───────────────────────────────────────────────────────
+
 export async function getRoadmapItem(projectId: string, day: number): Promise<RoadmapItem | null> {
   initializeSampleData();
   const project = await getProjectById(projectId);
@@ -242,20 +291,23 @@ export async function getRoadmapItem(projectId: string, day: number): Promise<Ro
   return project.roadmap.find(r => r.day === day) || null;
 }
 
-export async function updateRoadmapItem(projectId: string, day: number, updates: Partial<RoadmapItem>): Promise<RoadmapItem | null> {
+export async function updateRoadmapItem(
+  projectId: string,
+  day: number,
+  updates: Partial<RoadmapItem>
+): Promise<RoadmapItem | null> {
   initializeSampleData();
   const project = await getProjectById(projectId);
   if (!project) return null;
-  
   const item = project.roadmap.find(r => r.day === day);
   if (!item) return null;
-  
   Object.assign(item, updates);
   await updateProject(projectId, { roadmap: project.roadmap });
   return item;
 }
 
-// Admin operations
+// ─── Admin Operations ─────────────────────────────────────────────────────────
+
 export async function getAllProjects(): Promise<Project[]> {
   initializeSampleData();
   return storage.projects;
