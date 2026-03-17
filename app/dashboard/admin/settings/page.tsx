@@ -57,7 +57,10 @@ export default function AdminSettingsPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (data.deepLink) setTgDeepLink(data.deepLink);
+      if (data.deepLink) {
+        setTgDeepLink(data.deepLink);
+        window.open(data.deepLink, '_blank', 'noopener,noreferrer');
+      }
     } catch { /* silent */ } finally {
       setTgLoading(false);
     }
@@ -162,7 +165,7 @@ export default function AdminSettingsPage() {
                   ) : (
                     <div className="space-y-2">
                       <p className="text-xs text-slate-400">
-                        Click the link below to open Telegram and complete the connection:
+                        Telegram should have opened automatically. If not, use the button below:
                       </p>
                       <a
                         href={tgDeepLink}
