@@ -162,6 +162,8 @@ export default function ProfilePage() {
   };
 
   const handleTgConnect = async () => {
+    // Open window synchronously before async work — prevents popup blocker
+    const win = window.open('', '_blank');
     setTgLoading(true);
     setTgDeepLink(null);
     try {
@@ -172,9 +174,11 @@ export default function ProfilePage() {
       const data = await res.json();
       if (data.deepLink) {
         setTgDeepLink(data.deepLink);
-        window.open(data.deepLink, '_blank', 'noopener,noreferrer');
+        if (win) win.location.href = data.deepLink;
+      } else {
+        win?.close();
       }
-    } catch { /* silent */ } finally {
+    } catch { win?.close(); } finally {
       setTgLoading(false);
     }
   };
