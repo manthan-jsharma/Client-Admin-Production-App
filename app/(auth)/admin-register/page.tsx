@@ -59,11 +59,11 @@ export default function AdminRegisterPage() {
         </div>
 
         <div className="relative flex items-center gap-3">
-          <div className="w-10 h-10 bg-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-600/30">
-            <ShieldCheck className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden">
+            <img src="/icon.svg" alt="AI APP LABS" className="w-10 h-10 object-contain" />
           </div>
           <div>
-            <span className="text-xl font-bold text-white">BuildHub</span>
+            <span className="text-xl font-bold text-white">AI APP LABS</span>
             <span className="ml-2 text-xs font-medium text-violet-400 bg-violet-400/10 px-2 py-0.5 rounded-full">Admin</span>
           </div>
         </div>
@@ -93,7 +93,7 @@ export default function AdminRegisterPage() {
           </div>
         </div>
 
-        <p className="relative text-slate-700 text-sm">© 2026 BuildHub. All rights reserved.</p>
+        <p className="relative text-slate-700 text-sm">© 2026 AI APP LABS. All rights reserved.</p>
       </div>
 
       {/* Right panel — form */}
@@ -101,10 +101,10 @@ export default function AdminRegisterPage() {
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-10 lg:hidden">
-            <div className="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+              <img src="/icon.svg" alt="AI APP LABS" className="w-8 h-8 object-contain" />
             </div>
-            <span className="text-lg font-bold text-white">BuildHub Admin</span>
+            <span className="text-lg font-bold text-white">AI APP LABS Admin</span>
           </div>
 
           {success ? (

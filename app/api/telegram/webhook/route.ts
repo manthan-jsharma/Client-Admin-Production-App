@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       if (!token) {
         await sendTelegramMessage(
           chatId,
-          `👋 Hi <b>${fromName}</b>! To connect your BuildHub account, use the link from your profile page.`
+          `👋 Hi <b>${fromName}</b>! To connect your AI APP LABS account, use the link from your profile page.`
         );
         return NextResponse.json({ ok: true });
       }
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
         chatId,
         [
           `✅ <b>Connected!</b> Hi ${user.name}!`,
-          `Your BuildHub account is now linked. You'll receive notifications here for all key events on the platform.`,
+          `Your AI APP LABS account is now linked. You'll receive notifications here for all key events on the platform.`,
           `\n<a href="${dashboardUrl}">Open your dashboard →</a>`,
         ].join('\n')
       );
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     // Unknown message — send a help prompt
     await sendTelegramMessage(
       chatId,
-      `ℹ️ This bot sends you notifications from BuildHub. To connect your account, use the link from your <a href="${APP}/dashboard/client/profile">profile page</a>.`
+      `ℹ️ This bot sends you notifications from AI APP LABS. To connect your account, use the link from your <a href="${APP}/dashboard/client/profile">profile page</a>.`
     );
   } catch (err) {
     console.error('[telegram/webhook] error:', err);

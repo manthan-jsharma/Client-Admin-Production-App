@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     // Notify user on Telegram before disconnecting
     void sendTelegramMessage(
       user.telegramChatId,
-      '🔕 Your BuildHub account has been disconnected from Telegram. You will no longer receive notifications here.'
+      '🔕 Your AI APP LABS account has been disconnected from Telegram. You will no longer receive notifications here.'
     );
   }
 

@@ -63,10 +63,10 @@ export default function LoginPage() {
         </div>
 
         <div className="relative flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
-            <Zap className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden">
+            <img src="/icon.svg" alt="AI APP LABS" className="w-10 h-10 object-contain" />
           </div>
-          <span className="text-xl font-bold text-white">BuildHub</span>
+          <span className="text-xl font-bold text-white">AI APP LABS</span>
         </div>
 
         <div className="relative space-y-6">
@@ -95,7 +95,7 @@ export default function LoginPage() {
         </div>
 
         <div className="relative">
-          <p className="text-slate-600 text-sm">© 2026 BuildHub. All rights reserved.</p>
+          <p className="text-slate-600 text-sm">© 2026 AI APP LABS. All rights reserved.</p>
         </div>
       </div>
 
@@ -104,10 +104,10 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-10 lg:hidden">
-            <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-              <Zap className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+              <img src="/icon.svg" alt="AI APP LABS" className="w-8 h-8 object-contain" />
             </div>
-            <span className="text-lg font-bold text-white">BuildHub</span>
+            <span className="text-lg font-bold text-white">AI APP LABS</span>
           </div>
 
           <div className="mb-8">

@@ -50,10 +50,10 @@ export default function PendingPage() {
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6">
       {/* Logo */}
       <div className="flex items-center gap-2.5 mb-12">
-        <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-          <Zap className="w-4.5 h-4.5 text-white" />
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden">
+          <img src="/icon.svg" alt="AI APP LABS" className="w-9 h-9 object-contain" />
         </div>
-        <span className="text-lg font-bold text-white">BuildHub</span>
+        <span className="text-lg font-bold text-white">AI APP LABS</span>
       </div>
 
       <div className="w-full max-w-md">
@@ -133,7 +133,7 @@ export default function PendingPage() {
               {[
                 { step: '1', text: 'Account created', done: true },
                 { step: '2', text: 'Admin reviews your application', done: false, active: true },
-                { step: '3', text: 'Account activated — start using BuildHub', done: false },
+                { step: '3', text: 'Account activated — start using AI APP LABS', done: false },
               ].map((item) => (
                 <div key={item.step} className="flex items-center gap-3">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${

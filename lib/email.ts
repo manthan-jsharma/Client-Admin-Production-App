@@ -7,7 +7,7 @@
  *
  * Required env vars:
  *   RESEND_API_KEY        — your Resend secret key
- *   RESEND_FROM_EMAIL     — verified sender address, e.g. "BuildHub <noreply@yourdomain.com>"
+ *   RESEND_FROM_EMAIL     — verified sender address, e.g. "AI APP LABS <noreply@yourdomain.com>"
  *   ADMIN_EMAIL           — admin's email address for inbound notifications
  *   NEXT_PUBLIC_APP_URL   — base URL of the app, e.g. https://app.yourdomain.com
  */
@@ -16,7 +16,7 @@ import { Resend } from "resend";
 
 // const resend = new Resend(process.env.RESEND_API_KEY);
 
-const FROM = process.env.RESEND_FROM_EMAIL || "BuildHub <noreply@buildhub.app>";
+const FROM = process.env.RESEND_FROM_EMAIL || "AI APP LABS <noreply@buildhub.app>";
 const ADMIN = process.env.ADMIN_EMAIL || "admin@example.com";
 const APP = (
   process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
@@ -57,7 +57,7 @@ function wrap(title: string, body: string): string {
     <div style="width:34px;height:34px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
       <span style="color:#fff;font-weight:800;font-size:16px;line-height:1;">B</span>
     </div>
-    <span style="color:#fff;font-size:18px;font-weight:700;letter-spacing:-0.3px;">BuildHub</span>
+    <span style="color:#fff;font-size:18px;font-weight:700;letter-spacing:-0.3px;">AI APP LABS</span>
   </div>
 
   <!-- Body -->
@@ -68,7 +68,7 @@ function wrap(title: string, body: string): string {
   <!-- Footer -->
   <div style="background:#f8fafc;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;padding:18px 32px;text-align:center;">
     <p style="color:#94a3b8;font-size:12px;margin:0;line-height:1.6;">
-      © ${new Date().getFullYear()} BuildHub &nbsp;·&nbsp; You're receiving this because of account activity.<br/>
+      © ${new Date().getFullYear()} AI APP LABS &nbsp;·&nbsp; You're receiving this because of account activity.<br/>
       Questions? Reply to this email or contact your admin.
     </p>
   </div>
@@ -127,7 +127,7 @@ export async function sendSignupConfirmation(client: {
   businessName?: string;
 }) {
   const html = wrap(
-    "Welcome to BuildHub",
+    "Welcome to AI APP LABS",
     `
     ${heading(`Welcome, ${client.name}!`)}
     ${para(
@@ -151,7 +151,7 @@ export async function sendSignupConfirmation(client: {
 
   await send(
     client.email,
-    "Welcome to BuildHub — Account Pending Approval",
+    "Welcome to AI APP LABS — Account Pending Approval",
     html
   );
 
@@ -183,7 +183,7 @@ export async function sendAccountApproved(client: {
     `
     ${heading("You're approved! 🎉")}
     ${para(
-      `Hi ${client.name}, great news — your BuildHub account has been <strong>approved</strong> by the admin. You now have full access to the client portal.`
+      `Hi ${client.name}, great news — your AI APP LABS account has been <strong>approved</strong> by the admin. You now have full access to the client portal.`
     )}
     ${infoBox(
       "<strong>Account Status:</strong> Approved &nbsp;✓",
@@ -197,7 +197,7 @@ export async function sendAccountApproved(client: {
     ${btn(`${APP}/dashboard/client`, "Open My Dashboard")}
   `
   );
-  await send(client.email, "Your BuildHub account has been approved", html);
+  await send(client.email, "Your AI APP LABS account has been approved", html);
 }
 
 // ─── 3. Account Rejected ──────────────────────────────────────────────────────
@@ -211,7 +211,7 @@ export async function sendAccountRejected(
     `
     ${heading("Application Update")}
     ${para(
-      `Hi ${client.name}, thank you for your interest in BuildHub. After reviewing your application, we're unable to approve your account at this time.`
+      `Hi ${client.name}, thank you for your interest in AI APP LABS. After reviewing your application, we're unable to approve your account at this time.`
     )}
     ${infoBox(
       `<strong>Reason:</strong><br/>${feedback}`,
@@ -224,7 +224,7 @@ export async function sendAccountRejected(
     )}
   `
   );
-  await send(client.email, "Update on your BuildHub account application", html);
+  await send(client.email, "Update on your AI APP LABS account application", html);
 }
 
 // ─── 4. New Chat Message ──────────────────────────────────────────────────────

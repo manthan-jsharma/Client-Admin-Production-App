@@ -14,7 +14,7 @@ function getClient(): OpenAI {
 }
 
 // Company / platform system prompt injected into every AI conversation
-const SYSTEM_PROMPT = `You are an AI assistant embedded in BuildHub, a client project management platform used by a digital agency.
+const SYSTEM_PROMPT = `You are an AI assistant embedded in AI APP LABS, a client project management platform used by a digital agency.
 
 About the platform:
 - Clients can view their project roadmap (14-day timeline), track daily progress, manage payments, upload setup items, and communicate with their agency admin.

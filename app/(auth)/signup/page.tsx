@@ -68,17 +68,17 @@ export default function SignupPage() {
       <div className="w-full max-w-lg">
         {/* Logo */}
         <div className="flex items-center gap-2.5 mb-8">
-          <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <Zap className="w-4.5 h-4.5 text-white" />
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden">
+            <img src="/icon.svg" alt="AI APP LABS" className="w-9 h-9 object-contain" />
           </div>
-          <span className="text-lg font-bold text-white">BuildHub</span>
+          <span className="text-lg font-bold text-white">AI APP LABS</span>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl shadow-black/40">
           <div className="mb-7">
             <h1 className="text-2xl font-bold text-white mb-1.5">Create your account</h1>
             <p className="text-slate-400 text-sm">
-              Join BuildHub — your account will be reviewed by an admin before activation.
+              Join AI APP LABS — your account will be reviewed by an admin before activation.
             </p>
           </div>
 

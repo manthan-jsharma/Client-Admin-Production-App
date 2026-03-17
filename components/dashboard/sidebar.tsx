@@ -125,11 +125,11 @@ export function Sidebar() {
       {/* Logo */}
       <div className="p-5 border-b border-slate-800">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <Zap className="w-4 h-4 text-white" />
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+            <img src="/icon.svg" alt="AI APP LABS" className="w-8 h-8 object-contain" />
           </div>
           <div>
-            <h1 className="text-[15px] font-bold text-white tracking-tight">BuildHub</h1>
+            <h1 className="text-[15px] font-bold text-white tracking-tight">AI APP LABS</h1>
             <p className="text-[10px] text-slate-500 uppercase tracking-widest font-medium">
               {user.role === 'admin' ? 'Admin Portal' : 'Client Portal'}
             </p>
