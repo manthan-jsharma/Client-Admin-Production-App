@@ -9,7 +9,7 @@ import { useAuth } from '@/lib/auth-context';
 import {
   Send, ShieldCheck, Sparkles, Paperclip, Mic, Video,
   X, FileText, CheckCheck, Check, Bug, Zap, AlertCircle,
-  ChevronDown, FolderKanban, Clock, Package,
+  ChevronDown, FolderKanban, Clock, Package, ExternalLink,
 } from 'lucide-react';
 
 const POLL_INTERVAL_MS = 3000;
@@ -36,8 +36,11 @@ function AttachmentBubble({ a, isOwn }: { a: ChatAttachment; isOwn: boolean }) {
         <Mic className="w-3.5 h-3.5 flex-shrink-0" />
         <span>{a.filename}</span>
         <span className="opacity-60">{formatSize(a.size)}</span>
-        {/* TODO: Replace with real S3 URL when connected */}
-        <span className="opacity-40 text-[10px] font-mono truncate max-w-[100px]">{a.s3Key}</span>
+        {a.s3Key && !a.s3Key.startsWith('mock://') && (
+          <a href={a.s3Key} target="_blank" rel="noopener noreferrer" className="opacity-60 hover:opacity-100 transition-opacity" title="Download">
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        )}
       </div>
     );
   }

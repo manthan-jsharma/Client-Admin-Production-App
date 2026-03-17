@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Service } from '@/lib/types';
+import { FileUploadField } from '@/components/ui/file-upload-field';
 import {
   Package, Plus, X, Pencil, Trash2, Save, AlertCircle,
   CheckCircle2, DollarSign, Tag, ToggleLeft, ToggleRight,
@@ -252,14 +253,15 @@ export default function AdminServicesPage() {
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-300">Image S3 Key</label>
-                  <Input
+                  <FileUploadField
+                    label="Service Image"
                     value={form.imageS3Key}
-                    onChange={e => setForm(p => ({ ...p, imageS3Key: e.target.value }))}
-                    placeholder="services/image-name.jpg"
-                    className="bg-slate-800 border-slate-700 text-white rounded-xl h-10 text-xs font-mono"
+                    onChange={url => setForm(p => ({ ...p, imageS3Key: url }))}
+                    folder="services"
+                    accept="image/*"
+                    maxSizeMB={5}
+                    hint="JPEG, PNG, or WebP"
                   />
-                  <p className="text-xs text-slate-600">S3 key for the service image (connect AWS S3 later)</p>
                 </div>
                 <div className="sm:col-span-2 space-y-2">
                   <div className="flex items-center justify-between">

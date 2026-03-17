@@ -490,13 +490,13 @@ export default function AdminProjectDetailPage() {
                   <Stat label="Total Price" value={project.totalPrice ? `$${project.totalPrice.toLocaleString()}` : 'Not set'} />
                   <Stat label="Start Date" value={new Date(project.startDate).toLocaleDateString()} />
                   <Stat label="End Date" value={new Date(project.endDate).toLocaleDateString()} />
-                  <Stat label="Contract PDF" value={project.contractPDF ?? 'Not uploaded'} mono />
-                  <Stat label="Scope PDF" value={project.scopePDF ?? 'Not uploaded'} mono />
+                  <FileLink label="Contract PDF" url={project.contractPDF} />
+                  <FileLink label="Scope PDF" url={project.scopePDF} />
                   {project.type === 'ai_saas' && (
                     <>
                       <Stat label="GitHub Username" value={project.githubUsername ?? 'Not submitted'} />
-                      <Stat label="Demo Video" value={project.demoVideoS3Key ?? 'Not uploaded'} mono />
-                      <Stat label="Proof of Code" value={project.proofOfCodeS3Key ?? 'Not uploaded'} mono />
+                      <FileLink label="Demo Video" url={project.demoVideoS3Key} />
+                      <FileLink label="Proof of Code" url={project.proofOfCodeS3Key} />
                     </>
                   )}
                 </div>
@@ -732,7 +732,10 @@ export default function AdminProjectDetailPage() {
                       }
                     </div>
                     {project.hdPhotoS3Key && (
-                      <p className="text-xs font-mono text-slate-500 mb-3 bg-slate-700/40 rounded-lg px-3 py-1.5">{project.hdPhotoS3Key}</p>
+                      <a href={project.hdPhotoS3Key} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 mb-3 bg-slate-700/40 rounded-lg px-3 py-1.5 transition-colors">
+                        <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate font-mono">{project.hdPhotoS3Key.split('/').pop()}</span>
+                      </a>
                     )}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -761,7 +764,10 @@ export default function AdminProjectDetailPage() {
                       }
                     </div>
                     {project.teamSelfieVideoS3Key && (
-                      <p className="text-xs font-mono text-slate-500 mb-3 bg-slate-700/40 rounded-lg px-3 py-1.5">{project.teamSelfieVideoS3Key}</p>
+                      <a href={project.teamSelfieVideoS3Key} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 mb-3 bg-slate-700/40 rounded-lg px-3 py-1.5 transition-colors">
+                        <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate font-mono">{project.teamSelfieVideoS3Key.split('/').pop()}</span>
+                      </a>
                     )}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -819,7 +825,7 @@ export default function AdminProjectDetailPage() {
                   </div>
                   <div className="p-6 grid grid-cols-3 gap-5">
                     <Stat label="Domain Name" value={project.domainName ?? 'Not provided'} />
-                    <Stat label="Logo (S3)" value={project.logoS3Key ?? 'Not uploaded'} mono />
+                    <FileLink label="Logo" url={project.logoS3Key} />
                     <div>
                       <p className="text-xs text-slate-500 mb-1">Design Preferences</p>
                       <p className="text-sm text-slate-300">{project.designPreferences ?? 'Not provided'}</p>
@@ -940,6 +946,22 @@ function Stat({ label, value, mono = false }: { label: string; value: string; mo
     <div>
       <p className="text-xs text-slate-500 mb-0.5">{label}</p>
       <p className={`text-sm text-slate-300 ${mono ? 'font-mono text-xs' : 'font-medium'}`}>{value}</p>
+    </div>
+  );
+}
+
+function FileLink({ label, url }: { label: string; url?: string | null }) {
+  return (
+    <div>
+      <p className="text-xs text-slate-500 mb-0.5">{label}</p>
+      {url ? (
+        <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors font-mono">
+          <ExternalLink className="w-3 h-3 flex-shrink-0" />
+          <span className="truncate">{url.split('/').pop()}</span>
+        </a>
+      ) : (
+        <p className="text-sm text-slate-500">Not uploaded</p>
+      )}
     </div>
   );
 }

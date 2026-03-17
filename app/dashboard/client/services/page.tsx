@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Service } from '@/lib/types';
 import {
   Package, CheckCircle2, MessageSquare, Search, Tag,
-  DollarSign, ArrowRight, Sparkles,
+  DollarSign, ArrowRight,
 } from 'lucide-react';
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -136,15 +136,11 @@ export default function ClientServicesPage() {
                   {/* Image placeholder / S3 image */}
                   <div className="h-36 bg-gradient-to-br from-slate-700/60 to-slate-800/80 flex items-center justify-center relative overflow-hidden">
                     {service.imageS3Key ? (
-                      // TODO: Replace with <img src={getS3Url(service.imageS3Key)} ... />
-                      // when AWS S3 is connected and pre-signed URL generation is set up
-                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                        <Sparkles className="w-8 h-8 text-slate-600" />
-                        <p className="text-[10px] text-slate-600 font-mono px-3 text-center truncate max-w-full">
-                          {service.imageS3Key}
-                        </p>
-                        <p className="text-[10px] text-slate-700">Image loads after S3 is connected</p>
-                      </div>
+                      <img
+                        src={service.imageS3Key}
+                        alt={service.name}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
                     ) : (
                       <div className="flex flex-col items-center gap-2.5">
                         <div className={`w-12 h-12 ${cs.bg} border ${cs.border} rounded-xl flex items-center justify-center`}>

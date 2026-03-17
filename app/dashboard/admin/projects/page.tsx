@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Project, User } from '@/lib/types';
+import { FileUploadField } from '@/components/ui/file-upload-field';
 import {
   FolderKanban, Plus, X, Calendar, User2, Search,
   ExternalLink, Brain, Film, DollarSign, ChevronRight,
@@ -257,26 +258,24 @@ export default function AdminProjectsPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-300">Contract PDF (S3 key)</label>
-                  <Input
-                    type="text"
-                    value={formData.contractPDF}
-                    onChange={e => setFormData(f => ({ ...f, contractPDF: e.target.value }))}
-                    placeholder="contracts/project-id/contract.pdf"
-                    className="bg-slate-700/80 border-slate-600 text-white placeholder-slate-500 focus:border-blue-500 rounded-xl h-10"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-300">Scope PDF (S3 key)</label>
-                  <Input
-                    type="text"
-                    value={formData.scopePDF}
-                    onChange={e => setFormData(f => ({ ...f, scopePDF: e.target.value }))}
-                    placeholder="contracts/project-id/scope.pdf"
-                    className="bg-slate-700/80 border-slate-600 text-white placeholder-slate-500 focus:border-blue-500 rounded-xl h-10"
-                  />
-                </div>
+                <FileUploadField
+                  label="Contract PDF"
+                  value={formData.contractPDF}
+                  onChange={url => setFormData(f => ({ ...f, contractPDF: url }))}
+                  folder="contracts"
+                  accept=".pdf,application/pdf"
+                  maxSizeMB={20}
+                  hint="PDF"
+                />
+                <FileUploadField
+                  label="Scope PDF"
+                  value={formData.scopePDF}
+                  onChange={url => setFormData(f => ({ ...f, scopePDF: url }))}
+                  folder="contracts"
+                  accept=".pdf,application/pdf"
+                  maxSizeMB={20}
+                  hint="PDF"
+                />
               </div>
 
               <div className="flex gap-3 pt-1">
