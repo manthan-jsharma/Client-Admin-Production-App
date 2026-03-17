@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
+import { Project, Payment } from '@/lib/types';
 import {
   DollarSign,
   FolderKanban,
@@ -14,59 +15,92 @@ import {
   Target,
 } from 'lucide-react';
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const statusConfig: Record<string, { label: string; color: string; bar: string; badge: string }> = {
+  active:    { label: 'Active',    color: 'text-emerald-400', bar: 'bg-emerald-500', badge: 'bg-emerald-500/15 text-emerald-400' },
+  completed: { label: 'Completed', color: 'text-blue-400',    bar: 'bg-blue-500',    badge: 'bg-blue-500/15 text-blue-400' },
+  planning:  { label: 'Planning',  color: 'text-amber-400',   bar: 'bg-amber-500',   badge: 'bg-amber-500/15 text-amber-400' },
+  'on-hold': { label: 'On Hold',   color: 'text-red-400',     bar: 'bg-red-500',     badge: 'bg-red-500/15 text-red-400' },
+};
+
 export default function AdminAnalyticsPage() {
-  const [analyticsData] = useState({
-    totalRevenue: 45200,
-    totalProjects: 8,
-    activeClients: 5,
-    completedProjects: 3,
-    avgProjectDuration: 14,
-    monthlyGrowth: 12.5,
-    projectsByStatus: {
-      active: 5,
-      completed: 3,
-      planning: 2,
-      onHold: 1,
-    },
-    revenueByMonth: [
-      { month: 'Jan', value: 3200 },
-      { month: 'Feb', value: 4100 },
-      { month: 'Mar', value: 5200 },
-      { month: 'Apr', value: 6800 },
-      { month: 'May', value: 8200 },
-      { month: 'Jun', value: 9700 },
-      { month: 'Jul', value: 8300 },
-    ]
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token');
+    Promise.all([
+      fetch('/api/projects', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+      fetch('/api/admin/payments', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+    ]).then(([projRes, payRes]) => {
+      if (projRes.success) setProjects(projRes.data);
+      if (payRes.success) setPayments(payRes.data);
+    }).catch(console.error).finally(() => setIsLoading(false));
+  }, []);
+
+  // ─── Derived metrics ────────────────────────────────────────────────────────
+
+  const paidPayments = payments.filter(p => p.status === 'paid');
+  const totalRevenue = paidPayments.reduce((sum, p) => sum + (p.amount ?? 0), 0);
+
+  const completedProjects = projects.filter(p => p.status === 'completed').length;
+  const activeClients = new Set(projects.map(p => p.clientId).filter(Boolean)).size;
+
+  // Average project duration in days for completed projects
+  const avgDurationDays = (() => {
+    const completed = projects.filter(p => p.status === 'completed');
+    if (!completed.length) return 0;
+    const durations = completed.map(p => {
+      const s = new Date(p.startDate).getTime();
+      const e = new Date(p.endDate).getTime();
+      return isNaN(s) || isNaN(e) ? 0 : Math.round((e - s) / 86400000);
+    });
+    return Math.round(durations.reduce((a, b) => a + b, 0) / durations.length);
+  })();
+
+  const avgProjectValue = projects.length > 0
+    ? Math.round(totalRevenue / (projects.length || 1))
+    : 0;
+
+  // Projects by status
+  const projectsByStatus: Record<string, number> = {};
+  projects.forEach(p => {
+    const key = p.status === 'on-hold' ? 'on-hold' : p.status;
+    projectsByStatus[key] = (projectsByStatus[key] ?? 0) + 1;
   });
 
-  const maxRevenue = Math.max(...analyticsData.revenueByMonth.map(d => d.value));
+  // Revenue by month (last 7 months)
+  const now = new Date();
+  const revenueByMonth = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (6 - i), 1);
+    const monthKey = `${d.getFullYear()}-${d.getMonth()}`;
+    const value = paidPayments
+      .filter(p => {
+        const pd = new Date(p.createdAt ?? p.dueDate ?? '');
+        return `${pd.getFullYear()}-${pd.getMonth()}` === monthKey;
+      })
+      .reduce((sum, p) => sum + (p.amount ?? 0), 0);
+    return { month: MONTHS[d.getMonth()], value };
+  });
 
-  const statusConfig: Record<string, { label: string; color: string; bar: string; badge: string }> = {
-    active: {
-      label: 'Active',
-      color: 'text-emerald-400',
-      bar: 'bg-emerald-500',
-      badge: 'bg-emerald-500/15 text-emerald-400',
-    },
-    completed: {
-      label: 'Completed',
-      color: 'text-blue-400',
-      bar: 'bg-blue-500',
-      badge: 'bg-blue-500/15 text-blue-400',
-    },
-    planning: {
-      label: 'Planning',
-      color: 'text-amber-400',
-      bar: 'bg-amber-500',
-      badge: 'bg-amber-500/15 text-amber-400',
-    },
-    onHold: {
-      label: 'On Hold',
-      color: 'text-red-400',
-      bar: 'bg-red-500',
-      badge: 'bg-red-500/15 text-red-400',
-    },
-  };
+  const maxRevenue = Math.max(...revenueByMonth.map(d => d.value), 1);
+
+  // Month-over-month growth
+  const thisMonth = revenueByMonth[6]?.value ?? 0;
+  const lastMonth = revenueByMonth[5]?.value ?? 0;
+  const growthPct = lastMonth > 0
+    ? ((thisMonth - lastMonth) / lastMonth * 100).toFixed(1)
+    : null;
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="w-8 h-8 border-2 border-slate-600 border-t-blue-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -77,10 +111,16 @@ export default function AdminAnalyticsPage() {
             <h1 className="text-2xl font-bold text-white">Analytics</h1>
             <p className="text-sm text-slate-500 mt-1">Business insights and performance metrics</p>
           </div>
-          <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-400 bg-emerald-400/10 px-3 py-1.5 rounded-full">
-            <TrendingUp className="w-3.5 h-3.5" />
-            +12.5% this month
-          </span>
+          {growthPct !== null && (
+            <span className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full ${
+              Number(growthPct) >= 0
+                ? 'text-emerald-400 bg-emerald-400/10'
+                : 'text-red-400 bg-red-400/10'
+            }`}>
+              <TrendingUp className="w-3.5 h-3.5" />
+              {Number(growthPct) >= 0 ? '+' : ''}{growthPct}% this month
+            </span>
+          )}
         </div>
       </div>
 
@@ -90,39 +130,31 @@ export default function AdminAnalyticsPage() {
           {[
             {
               label: 'Total Revenue',
-              value: `$${(analyticsData.totalRevenue / 1000).toFixed(1)}K`,
-              sub: '+12.5% from last month',
-              subColor: 'text-emerald-400',
-              icon: DollarSign,
-              iconColor: 'text-amber-400',
-              iconBg: 'bg-amber-400/10',
+              value: totalRevenue >= 1000 ? `$${(totalRevenue / 1000).toFixed(1)}K` : `$${totalRevenue}`,
+              sub: growthPct !== null ? `${Number(growthPct) >= 0 ? '+' : ''}${growthPct}% from last month` : 'No prior month data',
+              subColor: growthPct !== null && Number(growthPct) >= 0 ? 'text-emerald-400' : 'text-slate-500',
+              icon: DollarSign, iconColor: 'text-amber-400', iconBg: 'bg-amber-400/10',
             },
             {
               label: 'Total Projects',
-              value: analyticsData.totalProjects,
-              sub: `${analyticsData.activeClients} active clients`,
+              value: projects.length,
+              sub: `${activeClients} active client${activeClients !== 1 ? 's' : ''}`,
               subColor: 'text-slate-500',
-              icon: FolderKanban,
-              iconColor: 'text-blue-400',
-              iconBg: 'bg-blue-400/10',
+              icon: FolderKanban, iconColor: 'text-blue-400', iconBg: 'bg-blue-400/10',
             },
             {
               label: 'Completed',
-              value: analyticsData.completedProjects,
-              sub: `Avg. ${analyticsData.avgProjectDuration} days`,
+              value: completedProjects,
+              sub: avgDurationDays > 0 ? `Avg. ${avgDurationDays} days` : 'No completed projects',
               subColor: 'text-slate-500',
-              icon: CheckCircle2,
-              iconColor: 'text-emerald-400',
-              iconBg: 'bg-emerald-400/10',
+              icon: CheckCircle2, iconColor: 'text-emerald-400', iconBg: 'bg-emerald-400/10',
             },
             {
               label: 'Success Rate',
-              value: '100%',
-              sub: 'All projects on time',
+              value: projects.length > 0 ? `${Math.round((completedProjects / projects.length) * 100)}%` : '—',
+              sub: completedProjects > 0 ? `${completedProjects} delivered` : 'No completed projects yet',
               subColor: 'text-emerald-400',
-              icon: Star,
-              iconColor: 'text-purple-400',
-              iconBg: 'bg-purple-400/10',
+              icon: Star, iconColor: 'text-purple-400', iconBg: 'bg-purple-400/10',
             },
           ].map((metric) => {
             const Icon = metric.icon;
@@ -148,23 +180,26 @@ export default function AdminAnalyticsPage() {
           <Card className="bg-slate-800/60 border-slate-700/50">
             <div className="p-5 border-b border-slate-700/50">
               <h2 className="text-base font-semibold text-white">Revenue Trend</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Monthly revenue overview</p>
+              <p className="text-xs text-slate-500 mt-0.5">Monthly revenue from paid invoices</p>
             </div>
             <div className="p-5 space-y-3">
-              {analyticsData.revenueByMonth.map((data) => (
+              {revenueByMonth.map((data) => (
                 <div key={data.month} className="flex items-center gap-4">
                   <span className="w-8 text-xs font-medium text-slate-400 flex-shrink-0">{data.month}</span>
                   <div className="flex-1 bg-slate-700/50 rounded-full h-2 overflow-hidden">
                     <div
                       className="bg-gradient-to-r from-blue-600 to-blue-400 h-2 rounded-full transition-all"
-                      style={{ width: `${(data.value / maxRevenue) * 100}%` }}
+                      style={{ width: data.value > 0 ? `${(data.value / maxRevenue) * 100}%` : '0%' }}
                     />
                   </div>
                   <span className="text-xs font-semibold text-white flex-shrink-0 w-16 text-right">
-                    ${data.value.toLocaleString()}
+                    {data.value > 0 ? `$${data.value.toLocaleString()}` : '—'}
                   </span>
                 </div>
               ))}
+              {paidPayments.length === 0 && (
+                <p className="text-xs text-slate-600 text-center pt-2">No paid invoices recorded yet</p>
+              )}
             </div>
           </Card>
 
@@ -172,12 +207,14 @@ export default function AdminAnalyticsPage() {
           <Card className="bg-slate-800/60 border-slate-700/50">
             <div className="p-5 border-b border-slate-700/50">
               <h2 className="text-base font-semibold text-white">Projects by Status</h2>
-              <p className="text-xs text-slate-500 mt-0.5">{analyticsData.totalProjects} total projects</p>
+              <p className="text-xs text-slate-500 mt-0.5">{projects.length} total project{projects.length !== 1 ? 's' : ''}</p>
             </div>
             <div className="p-5 space-y-3">
-              {Object.entries(analyticsData.projectsByStatus).map(([status, count]) => {
-                const config = statusConfig[status];
-                const pct = Math.round((count / analyticsData.totalProjects) * 100);
+              {projects.length === 0 ? (
+                <p className="text-xs text-slate-600 text-center py-6">No projects yet</p>
+              ) : Object.entries(projectsByStatus).map(([status, count]) => {
+                const config = statusConfig[status] ?? { label: status, color: 'text-slate-400', bar: 'bg-slate-500', badge: 'bg-slate-700 text-slate-400' };
+                const pct = Math.round((count / projects.length) * 100);
                 return (
                   <div key={status} className="flex items-center gap-4 p-3.5 rounded-xl bg-slate-700/20">
                     <div className="flex-1">
@@ -189,10 +226,7 @@ export default function AdminAnalyticsPage() {
                         </div>
                       </div>
                       <div className="w-full bg-slate-700 rounded-full h-1.5">
-                        <div
-                          className={`${config.bar} h-1.5 rounded-full transition-all`}
-                          style={{ width: `${pct}%` }}
-                        />
+                        <div className={`${config.bar} h-1.5 rounded-full transition-all`} style={{ width: `${pct}%` }} />
                       </div>
                     </div>
                   </div>
@@ -211,10 +245,26 @@ export default function AdminAnalyticsPage() {
           <div className="p-5">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { value: '98%', label: 'Client Satisfaction', icon: Star, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-                { value: '100%', label: 'On-Time Delivery', icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-                { value: '14', label: 'Days Avg Duration', icon: Clock, color: 'text-purple-400', bg: 'bg-purple-400/10' },
-                { value: '$5.6K', label: 'Avg Project Value', icon: Target, color: 'text-amber-400', bg: 'bg-amber-400/10' },
+                {
+                  value: projects.length > 0 ? `${Math.round((completedProjects / projects.length) * 100)}%` : '—',
+                  label: 'Completion Rate',
+                  icon: Star, color: 'text-blue-400', bg: 'bg-blue-400/10',
+                },
+                {
+                  value: completedProjects > 0 ? `${completedProjects}/${projects.length}` : `0/${projects.length}`,
+                  label: 'Projects Delivered',
+                  icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-400/10',
+                },
+                {
+                  value: avgDurationDays > 0 ? `${avgDurationDays}d` : '—',
+                  label: 'Avg Duration',
+                  icon: Clock, color: 'text-purple-400', bg: 'bg-purple-400/10',
+                },
+                {
+                  value: avgProjectValue > 0 ? (avgProjectValue >= 1000 ? `$${(avgProjectValue / 1000).toFixed(1)}K` : `$${avgProjectValue}`) : '—',
+                  label: 'Avg Project Value',
+                  icon: Target, color: 'text-amber-400', bg: 'bg-amber-400/10',
+                },
               ].map((item) => {
                 const Icon = item.icon;
                 return (
