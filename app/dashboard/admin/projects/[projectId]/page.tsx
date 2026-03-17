@@ -352,7 +352,7 @@ export default function AdminProjectDetailPage() {
     ...(project.type === 'ai_saas' ? [{ id: 'roadmap' as Tab, label: totalDays > 0 ? `Roadmap (${completedDays}/${totalDays})` : 'Roadmap' }] : []),
     { id: 'deliveries', label: `Deliveries (${deliveries.length})` },
     ...(project.type === 'content_distribution' ? [{ id: 'content' as Tab, label: 'Content Uploads' }] : []),
-    { id: 'setup', label: `Setup (${setupItems.length})` },
+    { id: 'setup', label: setupItems.length > 0 ? `Setup (${setupItems.filter(s => s.completed).length}/${setupItems.length})` : 'Setup' },
   ];
 
   return (
@@ -845,7 +845,9 @@ export default function AdminProjectDetailPage() {
         {activeTab === 'setup' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-slate-500">Manage setup checklist items for this project. Clients can check items off from their Setup page.</p>
+              <p className="text-xs text-slate-500">
+                {project.type === 'ai_saas' ? '14-Day Scope' : '7-Day Scope'} — manage the onboarding checklist. Clients see and complete these from their Setup tab.
+              </p>
               {setupItems.length === 0 && (
                 <Button
                   onClick={initializeSetup}
@@ -913,7 +915,7 @@ export default function AdminProjectDetailPage() {
               <Card className="bg-slate-800/60 border-slate-700/50 p-10 text-center">
                 <Settings2 className="w-8 h-8 text-slate-600 mx-auto mb-3" />
                 <p className="text-slate-400 text-sm mb-1">No setup items yet</p>
-                <p className="text-slate-600 text-xs">Use "Initialise Defaults" to add the 5 standard checklist items, or add custom ones below.</p>
+                <p className="text-slate-600 text-xs">Use "Initialise Defaults" to add the {project.type === 'ai_saas' ? '5 AI SaaS onboarding items (GitHub, hosting, domain, tech stack, API keys)' : '5 content distribution items (brand guidelines, logo, content audit, etc.)'}, or add custom ones below.</p>
               </Card>
             )}
 

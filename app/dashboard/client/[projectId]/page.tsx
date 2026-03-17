@@ -6,14 +6,15 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FileUploadField } from '@/components/ui/file-upload-field';
-import { Project, Delivery } from '@/lib/types';
+import { Project, Delivery, SetupItem } from '@/lib/types';
 import {
   ArrowLeft, Brain, Film, CheckCircle2, Circle, Video,
   Github, Upload, Check, X, ThumbsUp, ThumbsDown,
   FileText, Package, AlertCircle, Globe, Palette, Image, ExternalLink,
+  ClipboardList, Pencil, Save,
 } from 'lucide-react';
 
-type Tab = 'overview' | 'roadmap' | 'deliveries' | 'content';
+type Tab = 'overview' | 'roadmap' | 'deliveries' | 'content' | 'setup';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-slate-600/50 text-slate-400',
@@ -62,6 +63,12 @@ export default function ClientProjectDetailPage() {
   const [submittingContent, setSubmittingContent] = useState(false);
   const [submittingAiClone, setSubmittingAiClone] = useState(false);
 
+  // Setup items state
+  const [setupItems, setSetupItems] = useState<SetupItem[]>([]);
+  const [editingSetupId, setEditingSetupId] = useState<string | null>(null);
+  const [editSetupValue, setEditSetupValue] = useState('');
+  const [savingSetupId, setSavingSetupId] = useState<string | null>(null);
+
   const fetchProject = useCallback(async () => {
     try {
       const res = await fetch(`/api/projects/${projectId}`, { headers: { Authorization: `Bearer ${token}` } });
@@ -92,13 +99,60 @@ export default function ClientProjectDetailPage() {
     }
   }, [projectId, token]);
 
+  const fetchSetupItems = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/setup-items`, { headers: { Authorization: `Bearer ${token}` } });
+      const result = await res.json();
+      if (result.success) setSetupItems(result.data);
+    } catch (error) {
+      console.error('Error fetching setup items:', error);
+    }
+  }, [projectId, token]);
+
   useEffect(() => {
     const load = async () => {
-      await Promise.all([fetchProject(), fetchDeliveries()]);
+      await Promise.all([fetchProject(), fetchDeliveries(), fetchSetupItems()]);
       setIsLoading(false);
     };
     load();
-  }, [fetchProject, fetchDeliveries]);
+  }, [fetchProject, fetchDeliveries, fetchSetupItems]);
+
+  const toggleSetupItem = async (itemId: string, current: boolean) => {
+    setSavingSetupId(itemId);
+    try {
+      const res = await fetch(`/api/setup-items/${itemId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ completed: !current }),
+      });
+      const result = await res.json();
+      if (result.success) setSetupItems(prev => prev.map(s => s._id === itemId ? result.data : s));
+    } catch (error) {
+      console.error('Error toggling setup item:', error);
+    } finally {
+      setSavingSetupId(null);
+    }
+  };
+
+  const saveSetupValue = async (itemId: string) => {
+    setSavingSetupId(itemId);
+    try {
+      const res = await fetch(`/api/setup-items/${itemId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ value: editSetupValue }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        setSetupItems(prev => prev.map(s => s._id === itemId ? result.data : s));
+        setEditingSetupId(null);
+      }
+    } catch (error) {
+      console.error('Error saving setup value:', error);
+    } finally {
+      setSavingSetupId(null);
+    }
+  };
 
   const handleSignOff = async (deliveryId: string, action: 'approve' | 'request_revision') => {
     setSubmittingSignOff(true);
@@ -204,11 +258,15 @@ export default function ClientProjectDetailPage() {
 
   const pendingDeliveries = deliveries.filter(d => d.status === 'client_reviewing').length;
 
+  const completedSetup = setupItems.filter(s => s.completed).length;
+  const totalSetup = setupItems.length;
+
   const tabs: { id: Tab; label: string; badge?: number }[] = [
     { id: 'overview', label: 'Overview' },
-    ...(project.type === 'ai_saas' ? [{ id: 'roadmap' as Tab, label: 'Daily Roadmap' }] : []),
+    ...(project.type === 'ai_saas' ? [{ id: 'roadmap' as Tab, label: 'Roadmap' }] : []),
     { id: 'deliveries', label: 'Deliveries', badge: pendingDeliveries },
     ...(project.type === 'content_distribution' ? [{ id: 'content' as Tab, label: 'My Uploads' }] : []),
+    { id: 'setup', label: totalSetup > 0 ? `Setup (${completedSetup}/${totalSetup})` : 'Setup' },
   ];
 
   return (
@@ -691,6 +749,120 @@ export default function ClientProjectDetailPage() {
                 </Button>
               </form>
             </Card>
+          </div>
+        )}
+
+        {/* SETUP TAB */}
+        {activeTab === 'setup' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-white">
+                  {project.type === 'ai_saas' ? 'Project Setup — 14-Day Scope' : 'Project Setup — 7-Day Scope'}
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {totalSetup > 0
+                    ? `${completedSetup} of ${totalSetup} items completed`
+                    : 'Your admin will add setup items for this project shortly.'}
+                </p>
+              </div>
+              {totalSetup > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 w-32 bg-slate-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500 rounded-full transition-all"
+                      style={{ width: `${totalSetup > 0 ? Math.round((completedSetup / totalSetup) * 100) : 0}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-slate-400 font-medium w-8 text-right">
+                    {totalSetup > 0 ? Math.round((completedSetup / totalSetup) * 100) : 0}%
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {setupItems.length === 0 ? (
+              <Card className="bg-slate-800/60 border-slate-700/50 p-12 text-center">
+                <ClipboardList className="w-8 h-8 text-slate-600 mx-auto mb-3" />
+                <p className="text-slate-400 text-sm">No setup items yet</p>
+                <p className="text-slate-600 text-xs mt-1">Your admin will populate this checklist — check back soon.</p>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                {setupItems.map(item => (
+                  <Card key={item._id} className={`border transition-all ${item.completed ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-slate-800/60 border-slate-700/50'}`}>
+                    <div className="p-4">
+                      <div className="flex items-start gap-3">
+                        {/* Completion toggle */}
+                        <button
+                          onClick={() => toggleSetupItem(item._id!, item.completed)}
+                          disabled={savingSetupId === item._id}
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${
+                            item.completed
+                              ? 'bg-emerald-500 hover:bg-emerald-400'
+                              : 'bg-slate-700 border border-slate-600 hover:border-emerald-500'
+                          }`}
+                        >
+                          {item.completed
+                            ? <Check className="w-4 h-4 text-white" />
+                            : <span className="text-xs font-bold text-slate-400">{item.itemNumber}</span>
+                          }
+                        </button>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-medium ${item.completed ? 'line-through text-slate-500' : 'text-white'}`}>
+                            {item.title}
+                          </p>
+
+                          {editingSetupId === item._id ? (
+                            <div className="mt-2 flex gap-2">
+                              <Input
+                                value={editSetupValue}
+                                onChange={e => setEditSetupValue(e.target.value)}
+                                placeholder="Your response…"
+                                className="bg-slate-700 border-slate-600 text-white rounded-xl h-8 text-sm flex-1"
+                                autoFocus
+                                onKeyDown={e => { if (e.key === 'Enter') saveSetupValue(item._id!); if (e.key === 'Escape') setEditingSetupId(null); }}
+                              />
+                              <Button
+                                onClick={() => saveSetupValue(item._id!)}
+                                disabled={savingSetupId === item._id}
+                                className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl h-8 px-3 text-xs flex items-center gap-1"
+                              >
+                                <Save className="w-3 h-3" /> Save
+                              </Button>
+                              <Button onClick={() => setEditingSetupId(null)} className="bg-slate-700 hover:bg-slate-600 text-white rounded-xl h-8 px-3 text-xs">
+                                Cancel
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <p className="text-xs text-slate-400 flex-1">{item.value ?? '—'}</p>
+                              {!item.completed && (
+                                <button
+                                  onClick={() => { setEditingSetupId(item._id!); setEditSetupValue(item.value ?? ''); }}
+                                  className="p-1 hover:bg-slate-700 rounded text-slate-600 hover:text-slate-300 transition-colors flex-shrink-0"
+                                  title="Edit response"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {item.completed && item.completedAt && (
+                          <span className="text-[10px] text-emerald-600 flex-shrink-0 mt-1">
+                            {new Date(item.completedAt).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
