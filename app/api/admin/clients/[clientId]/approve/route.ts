@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, extractToken } from '@/lib/auth';
 import { approveClient } from '@/lib/db';
 import { ApiResponse, User } from '@/lib/types';
+import { sendAccountApproved } from '@/lib/email';
 
 export async function PATCH(
   request: NextRequest,
@@ -22,6 +23,8 @@ export async function PATCH(
     if (!updated) {
       return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
     }
+
+    sendAccountApproved({ name: updated.name, email: updated.email });
 
     const { password: _, ...userWithoutPassword } = updated;
     return NextResponse.json(

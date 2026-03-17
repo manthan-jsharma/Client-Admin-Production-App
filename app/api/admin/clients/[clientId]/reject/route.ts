@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, extractToken } from '@/lib/auth';
 import { rejectClient } from '@/lib/db';
 import { ApiResponse, User } from '@/lib/types';
+import { sendAccountRejected } from '@/lib/email';
 
 export async function PATCH(
   request: NextRequest,
@@ -32,6 +33,8 @@ export async function PATCH(
     if (!updated) {
       return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
     }
+
+    sendAccountRejected({ name: updated.name, email: updated.email }, feedback.trim());
 
     const { password: _, ...userWithoutPassword } = updated;
     return NextResponse.json(

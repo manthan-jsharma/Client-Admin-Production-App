@@ -17,6 +17,10 @@ import {
   AlertCircle,
   CheckCircle2,
   Upload,
+  Send,
+  Link2,
+  Link2Off,
+  ExternalLink,
 } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -36,6 +40,13 @@ export default function ProfilePage() {
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
+  // Telegram connect state
+  const [tgConnected, setTgConnected] = useState(false);
+  const [tgChatId, setTgChatId] = useState<string | null>(null);
+  const [tgDeepLink, setTgDeepLink] = useState<string | null>(null);
+  const [tgLoading, setTgLoading] = useState(false);
+  const [tgDisconnecting, setTgDisconnecting] = useState(false);
+
   useEffect(() => {
     if (user) {
       setForm({
@@ -49,6 +60,20 @@ export default function ProfilePage() {
       setAvatarPreview(user.profilePicture || null);
     }
   }, [user]);
+
+  // Fetch Telegram connect status on mount
+  useEffect(() => {
+    if (!token) return;
+    fetch('/api/telegram/connect', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          setTgConnected(data.connected);
+          setTgChatId(data.chatId);
+        }
+      })
+      .catch(() => {});
+  }, [token]);
 
   const notify = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
@@ -133,6 +158,37 @@ export default function ProfilePage() {
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleTgConnect = async () => {
+    setTgLoading(true);
+    setTgDeepLink(null);
+    try {
+      const res = await fetch('/api/telegram/connect', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.deepLink) setTgDeepLink(data.deepLink);
+    } catch { /* silent */ } finally {
+      setTgLoading(false);
+    }
+  };
+
+  const handleTgDisconnect = async () => {
+    setTgDisconnecting(true);
+    try {
+      await fetch('/api/telegram/disconnect', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setTgConnected(false);
+      setTgChatId(null);
+      setTgDeepLink(null);
+      notify('success', 'Telegram disconnected');
+    } catch { notify('error', 'Failed to disconnect'); } finally {
+      setTgDisconnecting(false);
     }
   };
 
@@ -326,6 +382,75 @@ export default function ProfilePage() {
               </Button>
             </div>
           </form>
+        </Card>
+
+        {/* Telegram Connect */}
+        <Card className="bg-slate-800/60 border-slate-700/50 p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-sky-500/15 flex items-center justify-center flex-shrink-0">
+              <Send className="w-5 h-5 text-sky-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-sm font-semibold text-white">Telegram Notifications</h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Connect your Telegram account to receive instant notifications for deliveries, payments, tickets, and more.
+              </p>
+
+              {tgConnected ? (
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center gap-2 text-emerald-400 text-sm">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Connected{tgChatId ? ` · chat ID ${tgChatId}` : ''}
+                  </div>
+                  <button
+                    onClick={handleTgDisconnect}
+                    disabled={tgDisconnecting}
+                    className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-red-400 transition-colors"
+                  >
+                    <Link2Off className="w-3.5 h-3.5" />
+                    {tgDisconnecting ? 'Disconnecting…' : 'Disconnect Telegram'}
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {!tgDeepLink ? (
+                    <button
+                      onClick={handleTgConnect}
+                      disabled={tgLoading}
+                      className="flex items-center gap-2 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-sm font-medium rounded-xl h-9 px-4 transition-colors"
+                    >
+                      <Link2 className="w-3.5 h-3.5" />
+                      {tgLoading ? 'Generating link…' : 'Connect Telegram'}
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs text-slate-400">
+                        Click the link below to open Telegram and complete the connection:
+                      </p>
+                      <a
+                        href={tgDeepLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium rounded-xl h-9 px-4 transition-colors"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        Open in Telegram
+                      </a>
+                      <p className="text-xs text-slate-600">
+                        After sending /start, refresh this page to see the connected status.
+                      </p>
+                      <button
+                        onClick={handleTgConnect}
+                        className="text-xs text-slate-500 hover:text-slate-300 underline"
+                      >
+                        Generate a new link
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </Card>
 
         {/* Account Info */}

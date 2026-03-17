@@ -1,0 +1,779 @@
+/**
+ * Email Notification Service — powered by Resend
+ *
+ * All sends are non-fatal: if RESEND_API_KEY is missing or a send fails,
+ * we log to console and continue. This keeps API routes unaffected by
+ * email failures.
+ *
+ * Required env vars:
+ *   RESEND_API_KEY        — your Resend secret key
+ *   RESEND_FROM_EMAIL     — verified sender address, e.g. "BuildHub <noreply@yourdomain.com>"
+ *   ADMIN_EMAIL           — admin's email address for inbound notifications
+ *   NEXT_PUBLIC_APP_URL   — base URL of the app, e.g. https://app.yourdomain.com
+ */
+
+import { Resend } from "resend";
+
+// const resend = new Resend(process.env.RESEND_API_KEY);
+
+const FROM = process.env.RESEND_FROM_EMAIL || "BuildHub <noreply@buildhub.app>";
+const ADMIN = process.env.ADMIN_EMAIL || "admin@example.com";
+const APP = (
+  process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+).replace(/\/$/, "");
+
+// ─── Internal helpers ──────────────────────────────────────────────────────────
+
+async function send(to: string | string[], subject: string, html: string) {
+  if (!process.env.RESEND_API_KEY) {
+    console.log(
+      `[email] RESEND_API_KEY not set — skipped: "${subject}" → ${to}`
+    );
+    return;
+  }
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    await resend.emails.send({ from: FROM, to, subject, html });
+  } catch (err) {
+    // Non-fatal — log and continue
+    console.error("[email] Send failed:", subject, err);
+  }
+}
+
+/** Base HTML wrapper used by every template */
+function wrap(title: string, body: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>${title}</title>
+</head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<div style="max-width:600px;margin:0 auto;padding:40px 16px;">
+
+  <!-- Header -->
+  <div style="background:#0f172a;border-radius:12px 12px 0 0;padding:22px 32px;display:flex;align-items:center;gap:12px;">
+    <div style="width:34px;height:34px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <span style="color:#fff;font-weight:800;font-size:16px;line-height:1;">B</span>
+    </div>
+    <span style="color:#fff;font-size:18px;font-weight:700;letter-spacing:-0.3px;">BuildHub</span>
+  </div>
+
+  <!-- Body -->
+  <div style="background:#ffffff;border:1px solid #e2e8f0;border-top:none;padding:36px 32px;">
+    ${body}
+  </div>
+
+  <!-- Footer -->
+  <div style="background:#f8fafc;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;padding:18px 32px;text-align:center;">
+    <p style="color:#94a3b8;font-size:12px;margin:0;line-height:1.6;">
+      © ${new Date().getFullYear()} BuildHub &nbsp;·&nbsp; You're receiving this because of account activity.<br/>
+      Questions? Reply to this email or contact your admin.
+    </p>
+  </div>
+
+</div>
+</body>
+</html>`;
+}
+
+/** Reusable CTA button */
+function btn(href: string, label: string, color = "#2563eb"): string {
+  return `<a href="${href}" style="display:inline-block;margin-top:20px;padding:12px 28px;background:${color};color:#fff;font-size:14px;font-weight:600;border-radius:8px;text-decoration:none;">${label}</a>`;
+}
+
+/** Highlight box (blue info / green success / red warning) */
+function infoBox(
+  content: string,
+  bg = "#eff6ff",
+  border = "#bfdbfe",
+  text = "#1e40af"
+): string {
+  return `<div style="background:${bg};border:1px solid ${border};border-radius:8px;padding:14px 18px;margin:20px 0;">
+    <p style="color:${text};font-size:14px;margin:0;line-height:1.6;">${content}</p>
+  </div>`;
+}
+
+/** Two-column key–value detail row */
+function detail(label: string, value: string): string {
+  return `<tr>
+    <td style="padding:7px 0;color:#64748b;font-size:13px;width:40%;vertical-align:top;">${label}</td>
+    <td style="padding:7px 0;color:#0f172a;font-size:13px;font-weight:500;">${value}</td>
+  </tr>`;
+}
+
+function detailTable(rows: string): string {
+  return `<table style="width:100%;border-collapse:collapse;margin:20px 0;">${rows}</table>`;
+}
+
+function heading(text: string): string {
+  return `<h1 style="color:#0f172a;font-size:22px;font-weight:700;margin:0 0 8px;line-height:1.3;">${text}</h1>`;
+}
+
+function para(text: string): string {
+  return `<p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 12px;">${text}</p>`;
+}
+
+function divider(): string {
+  return `<hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;"/>`;
+}
+
+// ─── 1. Client Signup Confirmation ─────────────────────────────────────────────
+
+export async function sendSignupConfirmation(client: {
+  name: string;
+  email: string;
+  businessName?: string;
+}) {
+  const html = wrap(
+    "Welcome to BuildHub",
+    `
+    ${heading(`Welcome, ${client.name}!`)}
+    ${para(
+      "Your account has been created and is now <strong>pending admin review</strong>. We'll send you an email as soon as your account is approved — usually within 1 business day."
+    )}
+    ${infoBox(
+      `<strong>Account Status:</strong> Pending Approval<br/><strong>Email:</strong> ${
+        client.email
+      }${
+        client.businessName
+          ? `<br/><strong>Business:</strong> ${client.businessName}`
+          : ""
+      }`
+    )}
+    ${para(
+      "While you wait, you can log in to your pending account and review the platform."
+    )}
+    ${btn(`${APP}/login`, "Log In")}
+  `
+  );
+
+  await send(
+    client.email,
+    "Welcome to BuildHub — Account Pending Approval",
+    html
+  );
+
+  // Notify admin of new signup
+  const adminHtml = wrap(
+    "New Client Signup",
+    `
+    ${heading("New Client Signup")}
+    ${para("A new client has registered and is waiting for your approval.")}
+    ${detailTable(
+      detail("Name", client.name) +
+        detail("Email", client.email) +
+        (client.businessName ? detail("Business", client.businessName) : "")
+    )}
+    ${btn(`${APP}/dashboard/admin/approvals`, "Review Signup", "#0f172a")}
+  `
+  );
+  await send(ADMIN, `New client signup: ${client.name}`, adminHtml);
+}
+
+// ─── 2. Account Approved ──────────────────────────────────────────────────────
+
+export async function sendAccountApproved(client: {
+  name: string;
+  email: string;
+}) {
+  const html = wrap(
+    "Your Account is Approved",
+    `
+    ${heading("You're approved! 🎉")}
+    ${para(
+      `Hi ${client.name}, great news — your BuildHub account has been <strong>approved</strong> by the admin. You now have full access to the client portal.`
+    )}
+    ${infoBox(
+      "<strong>Account Status:</strong> Approved &nbsp;✓",
+      "#f0fdf4",
+      "#bbf7d0",
+      "#166534"
+    )}
+    ${para(
+      "Log in now to view your projects, chat with your team, and track progress."
+    )}
+    ${btn(`${APP}/dashboard/client`, "Open My Dashboard")}
+  `
+  );
+  await send(client.email, "Your BuildHub account has been approved", html);
+}
+
+// ─── 3. Account Rejected ──────────────────────────────────────────────────────
+
+export async function sendAccountRejected(
+  client: { name: string; email: string },
+  feedback: string
+) {
+  const html = wrap(
+    "Account Application Update",
+    `
+    ${heading("Application Update")}
+    ${para(
+      `Hi ${client.name}, thank you for your interest in BuildHub. After reviewing your application, we're unable to approve your account at this time.`
+    )}
+    ${infoBox(
+      `<strong>Reason:</strong><br/>${feedback}`,
+      "#fff7ed",
+      "#fed7aa",
+      "#9a3412"
+    )}
+    ${para(
+      "If you believe this decision was made in error or have questions, please reply to this email or reach out to us directly."
+    )}
+  `
+  );
+  await send(client.email, "Update on your BuildHub account application", html);
+}
+
+// ─── 4. New Chat Message ──────────────────────────────────────────────────────
+
+export async function sendNewChatMessage(params: {
+  recipientEmail: string;
+  recipientName: string;
+  senderName: string;
+  senderRole: "admin" | "client";
+  projectName: string;
+  messagePreview: string;
+  projectId: string;
+}) {
+  const dashPath =
+    params.senderRole === "client"
+      ? `/dashboard/admin/chats?projectId=${params.projectId}`
+      : `/dashboard/client/chat`;
+
+  const html = wrap(
+    "New Chat Message",
+    `
+    ${heading("New message received")}
+    ${para(
+      `<strong>${params.senderName}</strong> sent a message in <strong>${params.projectName}</strong>:`
+    )}
+    <div style="background:#f8fafc;border-left:4px solid #3b82f6;border-radius:0 8px 8px 0;padding:14px 18px;margin:16px 0;">
+      <p style="color:#334155;font-size:14px;margin:0;line-height:1.6;font-style:italic;">"${
+        params.messagePreview.length > 200
+          ? params.messagePreview.slice(0, 200) + "…"
+          : params.messagePreview
+      }"</p>
+    </div>
+    ${btn(`${APP}${dashPath}`, "Reply in Chat")}
+  `
+  );
+  await send(
+    params.recipientEmail,
+    `New message from ${params.senderName} · ${params.projectName}`,
+    html
+  );
+}
+
+// ─── 5. Delivery Card Created ─────────────────────────────────────────────────
+
+export async function sendDeliveryCreated(params: {
+  clientEmail: string;
+  clientName: string;
+  projectName: string;
+  deliveryNumber: number;
+  deliveryTitle: string;
+  projectId: string;
+}) {
+  const html = wrap(
+    "New Delivery Ready for Review",
+    `
+    ${heading(`D${params.deliveryNumber}: ${params.deliveryTitle}`)}
+    ${para(
+      `Hi ${params.clientName}, your admin has submitted a new delivery for <strong>${params.projectName}</strong> and it's ready for your review.`
+    )}
+    ${detailTable(
+      detail("Project", params.projectName) +
+        detail(
+          "Delivery",
+          `D${params.deliveryNumber} — ${params.deliveryTitle}`
+        ) +
+        detail("Action Required", "Review and sign off")
+    )}
+    ${infoBox(
+      "Please review the delivery and either <strong>approve & sign off</strong> or <strong>request a revision</strong>.",
+      "#eff6ff",
+      "#bfdbfe",
+      "#1e40af"
+    )}
+    ${btn(
+      `${APP}/dashboard/client/${params.projectId}?tab=deliveries`,
+      "Review Delivery"
+    )}
+  `
+  );
+  await send(
+    params.clientEmail,
+    `Delivery D${params.deliveryNumber} ready for review — ${params.projectName}`,
+    html
+  );
+}
+
+// ─── 6. Delivery Approved (client signed off) ────────────────────────────────
+
+export async function sendDeliveryApproved(params: {
+  projectName: string;
+  deliveryNumber: number;
+  deliveryTitle: string;
+  clientName: string;
+  clientFeedback?: string;
+}) {
+  const html = wrap(
+    "Delivery Signed Off",
+    `
+    ${heading(`D${params.deliveryNumber} approved by client`)}
+    ${para(
+      `<strong>${params.clientName}</strong> has reviewed and approved <strong>D${params.deliveryNumber}: ${params.deliveryTitle}</strong> for <strong>${params.projectName}</strong>.`
+    )}
+    ${
+      params.clientFeedback
+        ? infoBox(
+            `<strong>Client feedback:</strong><br/>"${params.clientFeedback}"`,
+            "#f0fdf4",
+            "#bbf7d0",
+            "#166534"
+          )
+        : ""
+    }
+    ${btn(`${APP}/dashboard/admin/projects`, "View Project", "#0f172a")}
+  `
+  );
+  await send(
+    ADMIN,
+    `D${params.deliveryNumber} signed off — ${params.projectName}`,
+    html
+  );
+}
+
+// ─── 7. Delivery Revision Requested ──────────────────────────────────────────
+
+export async function sendDeliveryRevisionRequested(params: {
+  projectName: string;
+  deliveryNumber: number;
+  deliveryTitle: string;
+  clientName: string;
+  clientFeedback?: string;
+}) {
+  const html = wrap(
+    "Revision Requested",
+    `
+    ${heading(`Revision requested on D${params.deliveryNumber}`)}
+    ${para(
+      `<strong>${params.clientName}</strong> has requested a revision on <strong>D${params.deliveryNumber}: ${params.deliveryTitle}</strong> for <strong>${params.projectName}</strong>.`
+    )}
+    ${
+      params.clientFeedback
+        ? infoBox(
+            `<strong>Client feedback:</strong><br/>"${params.clientFeedback}"`,
+            "#fff7ed",
+            "#fed7aa",
+            "#9a3412"
+          )
+        : ""
+    }
+    ${btn(`${APP}/dashboard/admin/projects`, "View Project", "#0f172a")}
+  `
+  );
+  await send(
+    ADMIN,
+    `Revision requested on D${params.deliveryNumber} — ${params.projectName}`,
+    html
+  );
+}
+
+// ─── 8. Daily Progress Updated ───────────────────────────────────────────────
+
+export async function sendDailyProgressUpdated(params: {
+  clientEmail: string;
+  clientName: string;
+  projectName: string;
+  day: number;
+  dayTitle: string;
+  videoUrl?: string;
+  projectId: string;
+}) {
+  const html = wrap(
+    "Daily Progress Update",
+    `
+    ${heading(`Day ${params.day} complete — ${params.projectName}`)}
+    ${para(
+      `Hi ${params.clientName}, your admin has completed <strong>Day ${params.day}: ${params.dayTitle}</strong> on <strong>${params.projectName}</strong>.`
+    )}
+    ${
+      params.videoUrl
+        ? infoBox(
+            `<strong>Progress video available.</strong><br/>Log in to watch the day ${params.day} progress update from your admin.`,
+            "#eff6ff",
+            "#bfdbfe",
+            "#1e40af"
+          )
+        : infoBox(
+            `Day ${params.day} has been marked complete. Log in to view the latest project status.`
+          )
+    }
+    ${btn(
+      `${APP}/dashboard/client/${params.projectId}?tab=roadmap`,
+      "View Roadmap"
+    )}
+  `
+  );
+  await send(
+    params.clientEmail,
+    `Day ${params.day} complete — ${params.projectName}`,
+    html
+  );
+}
+
+// ─── 9. Ticket Submitted ─────────────────────────────────────────────────────
+
+export async function sendTicketSubmitted(params: {
+  clientName: string;
+  clientEmail: string;
+  subject: string;
+  type: string;
+  description: string;
+  priority: string;
+  ticketId: string;
+}) {
+  // Confirm to client
+  const clientHtml = wrap(
+    "Ticket Received",
+    `
+    ${heading("Your ticket has been received")}
+    ${para(
+      `Hi ${params.clientName}, we've received your support ticket and will respond as soon as possible.`
+    )}
+    ${detailTable(
+      detail("Subject", params.subject) +
+        detail("Type", params.type.replace("_", " ")) +
+        detail("Priority", params.priority) +
+        detail("Status", "Open")
+    )}
+    ${para(
+      "You'll receive an email when the status is updated or when a response is added."
+    )}
+  `
+  );
+  await send(
+    params.clientEmail,
+    `Ticket received: ${params.subject}`,
+    clientHtml
+  );
+
+  // Notify admin
+  const adminHtml = wrap(
+    "New Support Ticket",
+    `
+    ${heading("New ticket submitted")}
+    ${para(
+      `<strong>${params.clientName}</strong> has submitted a new support ticket.`
+    )}
+    ${detailTable(
+      detail("Subject", params.subject) +
+        detail("Client", `${params.clientName} (${params.clientEmail})`) +
+        detail("Type", params.type.replace("_", " ")) +
+        detail("Priority", params.priority)
+    )}
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 18px;margin:20px 0;">
+      <p style="color:#64748b;font-size:12px;margin:0 0 6px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Description</p>
+      <p style="color:#334155;font-size:14px;margin:0;line-height:1.6;">${
+        params.description
+      }</p>
+    </div>
+    ${btn(`${APP}/dashboard/admin/requests`, "View Ticket", "#0f172a")}
+  `
+  );
+  await send(
+    ADMIN,
+    `New ticket: ${params.subject} (${params.type})`,
+    adminHtml
+  );
+}
+
+// ─── 10. Ticket Status Changed ───────────────────────────────────────────────
+
+export async function sendTicketStatusChanged(params: {
+  clientEmail: string;
+  clientName: string;
+  subject: string;
+  newStatus: string;
+  adminResponse?: string;
+  ticketId: string;
+}) {
+  const statusLabel: Record<string, string> = {
+    open: "Open",
+    in_progress: "In Progress",
+    resolved: "Resolved",
+    closed: "Closed",
+  };
+
+  const html = wrap(
+    "Ticket Update",
+    `
+    ${heading(`Ticket Update: ${params.subject}`)}
+    ${para(
+      `Hi ${params.clientName}, the status of your ticket has been updated.`
+    )}
+    ${detailTable(
+      detail("Subject", params.subject) +
+        detail("New Status", statusLabel[params.newStatus] ?? params.newStatus)
+    )}
+    ${
+      params.adminResponse
+        ? `${divider()}
+         <p style="color:#64748b;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px;">Admin Response</p>
+         <div style="background:#f8fafc;border-left:4px solid #3b82f6;border-radius:0 8px 8px 0;padding:14px 18px;">
+           <p style="color:#334155;font-size:14px;margin:0;line-height:1.6;">${
+             params.adminResponse
+           }</p>
+         </div>`
+        : ""
+    }
+    ${btn(`${APP}/dashboard/client/chat`, "Open Chat for Questions")}
+  `
+  );
+  await send(
+    params.clientEmail,
+    `Ticket update: ${params.subject} — ${
+      statusLabel[params.newStatus] ?? params.newStatus
+    }`,
+    html
+  );
+}
+
+// ─── 11. Payment Updated ─────────────────────────────────────────────────────
+
+export async function sendPaymentUpdated(params: {
+  clientEmail: string;
+  clientName: string;
+  amount: number;
+  currency: string;
+  newStatus: string;
+  notes?: string;
+  dueDate?: Date;
+}) {
+  const statusMeta: Record<
+    string,
+    { label: string; bg: string; border: string; color: string }
+  > = {
+    pending: {
+      label: "Pending",
+      bg: "#fffbeb",
+      border: "#fde68a",
+      color: "#92400e",
+    },
+    paid: {
+      label: "Paid ✓",
+      bg: "#f0fdf4",
+      border: "#bbf7d0",
+      color: "#166534",
+    },
+    overdue: {
+      label: "Overdue",
+      bg: "#fff1f2",
+      border: "#fecdd3",
+      color: "#9f1239",
+    },
+  };
+  const meta = statusMeta[params.newStatus] ?? statusMeta.pending;
+
+  const html = wrap(
+    "Payment Update",
+    `
+    ${heading("Payment record updated")}
+    ${para(`Hi ${params.clientName}, your payment record has been updated.`)}
+    ${detailTable(
+      detail(
+        "Amount",
+        `${params.currency} $${params.amount.toLocaleString()}`
+      ) +
+        (params.dueDate
+          ? detail(
+              "Due Date",
+              new Date(params.dueDate).toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })
+            )
+          : "")
+    )}
+    ${infoBox(
+      `<strong>Status: ${meta.label}</strong>${
+        params.notes ? `<br/>${params.notes}` : ""
+      }`,
+      meta.bg,
+      meta.border,
+      meta.color
+    )}
+    ${btn(`${APP}/dashboard/client/payments`, "View Payments")}
+  `
+  );
+  await send(
+    params.clientEmail,
+    `Payment ${meta.label.toLowerCase()} — ${
+      params.currency
+    } $${params.amount.toLocaleString()}`,
+    html
+  );
+}
+
+// ─── 12. Service Inquiry Received ────────────────────────────────────────────
+
+export async function sendServiceInquiryReceived(params: {
+  clientName: string;
+  clientEmail: string;
+  serviceName: string;
+  messagePreview: string;
+  projectId?: string;
+}) {
+  const html = wrap(
+    "New Service Inquiry",
+    `
+    ${heading("New service inquiry")}
+    ${para(
+      `<strong>${params.clientName}</strong> has sent an inquiry about a service.`
+    )}
+    ${detailTable(
+      detail("Client", `${params.clientName} (${params.clientEmail})`) +
+        detail("Service", params.serviceName)
+    )}
+    <div style="background:#f8fafc;border-left:4px solid #8b5cf6;border-radius:0 8px 8px 0;padding:14px 18px;margin:20px 0;">
+      <p style="color:#334155;font-size:14px;margin:0;line-height:1.6;font-style:italic;">"${
+        params.messagePreview.length > 300
+          ? params.messagePreview.slice(0, 300) + "…"
+          : params.messagePreview
+      }"</p>
+    </div>
+    ${btn(
+      `${APP}/dashboard/admin/chats${
+        params.projectId ? `?projectId=${params.projectId}` : ""
+      }`,
+      "Open Chat to Respond",
+      "#0f172a"
+    )}
+  `
+  );
+  await send(
+    ADMIN,
+    `Service inquiry: ${params.serviceName} from ${params.clientName}`,
+    html
+  );
+}
+
+// ─── 13. Referral Submitted ───────────────────────────────────────────────────
+
+export async function sendReferralSubmitted(params: {
+  referrerEmail: string;
+  referrerName: string;
+  refereeName: string;
+  refereeEmail: string;
+  refereeCompany?: string;
+}) {
+  // Confirm to referrer
+  const referrerHtml = wrap(
+    "Referral Submitted",
+    `
+    ${heading("Referral received — thank you!")}
+    ${para(
+      `Hi ${params.referrerName}, your referral has been submitted and our team will reach out to ${params.refereeName} within 48 hours.`
+    )}
+    ${detailTable(
+      detail("Referred", params.refereeName) +
+        detail("Email", params.refereeEmail) +
+        (params.refereeCompany ? detail("Company", params.refereeCompany) : "")
+    )}
+    ${infoBox(
+      "<strong>Reward reminder:</strong> You'll receive a <strong>free AI software asset</strong> when your referral converts to a client.",
+      "#faf5ff",
+      "#e9d5ff",
+      "#6b21a8"
+    )}
+    ${btn(`${APP}/dashboard/client/referrals`, "View My Referrals")}
+  `
+  );
+  await send(
+    params.referrerEmail,
+    `Referral submitted for ${params.refereeName}`,
+    referrerHtml
+  );
+
+  // Notify admin
+  const adminHtml = wrap(
+    "New Referral Submission",
+    `
+    ${heading("New referral submitted")}
+    ${para(
+      `<strong>${params.referrerName}</strong> has submitted a new referral.`
+    )}
+    ${detailTable(
+      detail(
+        "Referred by",
+        `${params.referrerName} (${params.referrerEmail})`
+      ) +
+        detail("Referee name", params.refereeName) +
+        detail("Referee email", params.refereeEmail) +
+        (params.refereeCompany ? detail("Company", params.refereeCompany) : "")
+    )}
+    ${btn(`${APP}/dashboard/admin/referrals`, "Review Referrals", "#0f172a")}
+  `
+  );
+  await send(
+    ADMIN,
+    `New referral: ${params.refereeName} from ${params.referrerName}`,
+    adminHtml
+  );
+}
+
+// ─── 14. Maintenance: new submission (admin notification) ─────────────────────
+
+export async function sendMaintenanceSubmitted(params: {
+  clientName: string;
+  clientEmail: string;
+  message: string;
+  submissionId: string;
+}) {
+  const html = wrap(
+    "New maintenance feedback",
+    `
+    ${heading("New maintenance feedback received")}
+    ${para(`<strong>${params.clientName}</strong> has submitted a new maintenance feedback.`)}
+    ${infoBox(
+      `<em style="color:#374151;">"${params.message.slice(0, 300)}${params.message.length > 300 ? '…' : ''}"</em>`,
+      "#f0fdf4", "#166534"
+    )}
+    ${btn(`${APP}/dashboard/admin/maintenance`, "View & Respond", "#0f172a")}
+    `
+  );
+  await send(ADMIN, `New maintenance feedback from ${params.clientName}`, html);
+}
+
+// ─── 15. Maintenance: admin responded (client notification) ──────────────────
+
+export async function sendMaintenanceResponse(params: {
+  clientEmail: string;
+  clientName: string;
+  originalMessage: string;
+  adminResponse: string;
+  status: string;
+}) {
+  const html = wrap(
+    "Response to your maintenance feedback",
+    `
+    ${heading("We've responded to your feedback")}
+    ${para(`Hi ${params.clientName}, our team has replied to your maintenance submission.`)}
+    ${detailTable(
+      detail("Your message", params.originalMessage.slice(0, 200) + (params.originalMessage.length > 200 ? '…' : '')) +
+      detail("Status", params.status.charAt(0).toUpperCase() + params.status.slice(1))
+    )}
+    ${infoBox(
+      `<strong>Team response:</strong><br/>${params.adminResponse}`,
+      "#eff6ff", "#1e40af"
+    )}
+    ${btn(`${APP}/dashboard/client/maintenance`, "View in Dashboard")}
+    `
+  );
+  await send(params.clientEmail, "Response to your maintenance feedback", html);
+}

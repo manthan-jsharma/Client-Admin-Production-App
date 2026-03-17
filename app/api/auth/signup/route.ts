@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createUser, getUserByEmail } from '@/lib/db';
 import { hashPassword, createToken, isValidEmail, isValidPassword } from '@/lib/auth';
 import { User, ApiResponse, AuthResponse } from '@/lib/types';
+import { sendSignupConfirmation } from '@/lib/email';
+import { tgAdminNewClient } from '@/lib/telegram';
 
 export async function POST(request: NextRequest): Promise<NextResponse<ApiResponse<AuthResponse>>> {
   try {
@@ -53,6 +55,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     };
 
     const createdUser = await createUser(newUser);
+
+    // Fire-and-forget notifications
+    sendSignupConfirmation({ name: createdUser.name, email: createdUser.email, businessName: createdUser.businessName });
+    void tgAdminNewClient({
+      clientName: createdUser.name,
+      clientEmail: createdUser.email,
+    });
 
     // Issue a token even for pending users so the pending page can identify them
     const token = createToken({

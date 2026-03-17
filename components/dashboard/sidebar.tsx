@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
@@ -19,14 +19,22 @@ import {
   ChevronRight,
   UserCircle,
   ShieldCheck,
-  Clock,
+  Package,
+  GitBranch,
+  Star,
+  Target,
+  Wrench,
+  LifeBuoy,
+  SlidersHorizontal,
 } from 'lucide-react';
+
+type BadgeKey = 'pendingClients' | 'openTickets' | 'unreadMessages';
 
 interface MenuItem {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  pendingBadge?: boolean;
+  badgeKey?: BadgeKey;
 }
 
 const clientMenu: MenuItem[] = [
@@ -35,7 +43,13 @@ const clientMenu: MenuItem[] = [
   { href: '/dashboard/client/roadmap', label: 'Roadmap', icon: Map },
   { href: '/dashboard/client/setup', label: 'Setup', icon: Settings2 },
   { href: '/dashboard/client/payments', label: 'Payments', icon: CreditCard },
-  { href: '/dashboard/client/chat', label: 'Chat', icon: MessageSquare },
+  { href: '/dashboard/client/services', label: 'Services', icon: Package },
+  { href: '/dashboard/client/referrals', label: 'Referrals', icon: GitBranch },
+  { href: '/dashboard/client/testimonials', label: 'Testimonial', icon: Star },
+  { href: '/dashboard/client/lead-gen', label: 'Lead Generation', icon: Target },
+  { href: '/dashboard/client/maintenance', label: 'Maintenance', icon: Wrench },
+  { href: '/dashboard/client/tickets', label: 'Support Tickets', icon: LifeBuoy },
+  { href: '/dashboard/client/chat', label: 'Chat', icon: MessageSquare, badgeKey: 'unreadMessages' },
   { href: '/dashboard/client/profile', label: 'My Profile', icon: UserCircle },
 ];
 
@@ -43,35 +57,51 @@ const adminMenu: MenuItem[] = [
   { href: '/dashboard/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/admin/projects', label: 'Projects', icon: FolderKanban },
   { href: '/dashboard/admin/clients', label: 'Clients', icon: Users },
-  { href: '/dashboard/admin/approvals', label: 'Approvals', icon: ShieldCheck, pendingBadge: true },
-  { href: '/dashboard/admin/requests', label: 'Requests', icon: ClipboardList },
+  { href: '/dashboard/admin/approvals', label: 'Approvals', icon: ShieldCheck, badgeKey: 'pendingClients' },
+  { href: '/dashboard/admin/requests', label: 'Tickets', icon: ClipboardList, badgeKey: 'openTickets' },
+  { href: '/dashboard/admin/chats', label: 'Chats', icon: MessageSquare, badgeKey: 'unreadMessages' },
+  { href: '/dashboard/admin/payments', label: 'Payments', icon: CreditCard },
+  { href: '/dashboard/admin/services', label: 'Services', icon: Package },
+  { href: '/dashboard/admin/referrals', label: 'Referrals', icon: GitBranch },
+  { href: '/dashboard/admin/testimonials', label: 'Testimonials', icon: Star },
+  { href: '/dashboard/admin/lead-gen', label: 'Lead Generation', icon: Target },
+  { href: '/dashboard/admin/maintenance', label: 'Maintenance', icon: Wrench },
   { href: '/dashboard/admin/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/dashboard/admin/settings', label: 'Settings', icon: SlidersHorizontal },
 ];
+
+type Counts = {
+  pendingClients?: number;
+  openTickets?: number;
+  unreadMessages?: number;
+};
+
+const POLL_MS = 30_000;
 
 export function Sidebar() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [pendingCount, setPendingCount] = useState(0);
+  const [counts, setCounts] = useState<Counts>({});
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    if (user?.role !== 'admin') return;
+    if (!user) return;
 
-    const fetchPending = async () => {
+    const fetchCounts = async () => {
       try {
         const token = localStorage.getItem('auth_token');
-        const res = await fetch('/api/admin/clients', {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const res = await fetch('/api/notifications', {
+          headers: { Authorization: `Bearer ${token}` },
         });
         const result = await res.json();
-        if (result.success) {
-          const pending = result.data.filter((c: any) => c.status === 'pending').length;
-          setPendingCount(pending);
-        }
-      } catch {}
+        if (result.success) setCounts(result.data);
+      } catch { /* ignore */ }
     };
 
-    fetchPending();
+    fetchCounts();
+    pollRef.current = setInterval(fetchCounts, POLL_MS);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [user]);
 
   if (!user) return null;
@@ -115,7 +145,7 @@ export function Sidebar() {
         {items.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           const Icon = item.icon;
-          const badge = item.pendingBadge && pendingCount > 0 ? pendingCount : null;
+          const badgeCount = item.badgeKey ? (counts[item.badgeKey] ?? 0) : 0;
 
           return (
             <Link
@@ -129,12 +159,12 @@ export function Sidebar() {
             >
               <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-300'}`} />
               <span className="flex-1">{item.label}</span>
-              {badge && (
-                <span className="flex items-center justify-center w-5 h-5 bg-amber-500 text-white text-[10px] font-bold rounded-full">
-                  {badge > 9 ? '9+' : badge}
+              {badgeCount > 0 && (
+                <span className="flex items-center justify-center min-w-[20px] h-5 px-1 bg-amber-500 text-white text-[10px] font-bold rounded-full">
+                  {badgeCount > 99 ? '99+' : badgeCount}
                 </span>
               )}
-              {isActive && !badge && <ChevronRight className="w-3 h-3 opacity-70" />}
+              {isActive && badgeCount === 0 && <ChevronRight className="w-3 h-3 opacity-70" />}
             </Link>
           );
         })}

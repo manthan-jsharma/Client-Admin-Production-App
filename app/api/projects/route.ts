@@ -58,26 +58,56 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     }
 
     const body = await request.json();
-    const { clientId, name, description, status, startDate, endDate } = body;
+    const { clientId, name, description, type, status, startDate, endDate, totalPrice, contractPDF, scopePDF } = body;
 
-    if (!clientId || !name || !description) {
+    if (!clientId || !name || !description || !type) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
+        { success: false, error: 'Missing required fields: clientId, name, description, type' },
         { status: 400 }
       );
     }
+
+    if (!['ai_saas', 'content_distribution'].includes(type)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid type — must be ai_saas or content_distribution' },
+        { status: 400 }
+      );
+    }
+
+    // Build 14-day roadmap for ai_saas, empty for content_distribution
+    const roadmap = type === 'ai_saas'
+      ? Array.from({ length: 14 }, (_, i) => ({
+          _id: `roadmap-new-${Date.now()}-${i}`,
+          projectId: '',  // filled after project creation
+          day: i + 1,
+          title: `Day ${i + 1}`,
+          description: `Deliverables for day ${i + 1}`,
+          completed: false,
+          createdAt: new Date(),
+        }))
+      : [];
 
     const project = await createProject({
       clientId,
       adminId: payload.userId,
       name,
       description,
+      type,
       status: status || 'planning',
+      totalPrice: totalPrice ? Number(totalPrice) : undefined,
+      contractPDF,
+      scopePDF,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
-      roadmap: [],
-      dailyProgress: []
+      roadmap,
+      dailyProgress: [],
+      deliveries: [],
     });
+
+    // Patch roadmap projectId after project has its _id
+    if (project.roadmap.length > 0) {
+      project.roadmap.forEach(r => { r.projectId = project._id!; });
+    }
 
     return NextResponse.json(
       {

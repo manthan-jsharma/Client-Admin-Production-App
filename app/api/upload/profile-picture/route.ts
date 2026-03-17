@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, extractToken, ALLOWED_IMAGE_TYPES, MAX_UPLOAD_SIZE_BYTES } from '@/lib/auth';
 import { updateUserProfile } from '@/lib/db';
+import { getStorageService } from '@/lib/services/storage-service';
 import { ApiResponse } from '@/lib/types';
 
 // POST /api/upload/profile-picture
@@ -27,7 +28,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
       return NextResponse.json({ success: false, error: 'No file provided' }, { status: 400 });
     }
 
-    // ── File type validation ───────────────────────────────────────────────────
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
       return NextResponse.json(
         { success: false, error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF' },
@@ -35,7 +35,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
       );
     }
 
-    // ── File size validation ───────────────────────────────────────────────────
     if (file.size > MAX_UPLOAD_SIZE_BYTES) {
       return NextResponse.json(
         { success: false, error: 'File too large. Maximum size is 5 MB' },
@@ -43,16 +42,27 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
       );
     }
 
-    // Convert to base64 data URL for in-memory storage
-    // In production: upload to S3 / Vercel Blob / Cloudinary and store the URL
-    const arrayBuffer = await file.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString('base64');
-    const dataUrl = `data:${file.type};base64,${base64}`;
+    const safeFilename = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const storage = getStorageService();
 
-    await updateUserProfile(payload.userId, { profilePicture: dataUrl });
+    const result = await storage.upload({
+      file,
+      filename: safeFilename,
+      contentType: file.type,
+      folder: `profiles/${payload.userId}`,
+    });
+
+    if (!result.success || !result.url) {
+      return NextResponse.json(
+        { success: false, error: result.error ?? 'Upload failed' },
+        { status: 500 }
+      );
+    }
+
+    await updateUserProfile(payload.userId, { profilePicture: result.url });
 
     return NextResponse.json(
-      { success: true, message: 'Profile picture updated', data: { url: dataUrl } },
+      { success: true, message: 'Profile picture updated', data: { url: result.url } },
       { status: 200 }
     );
   } catch (error) {
