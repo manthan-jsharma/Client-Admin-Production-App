@@ -53,7 +53,7 @@ export async function POST(
 
     // Seed defaults mode
     if (body.defaults === true) {
-      const items = await seedDefaultSetupItems(projectId);
+      const items = await seedDefaultSetupItems(projectId, project.type);
       return NextResponse.json({ success: true, data: items }, { status: 201 });
     }
 

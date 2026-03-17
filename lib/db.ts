@@ -678,14 +678,8 @@ export async function createProject(project: Project): Promise<Project> {
     if (rmErr) console.error('[db] createProject: failed to insert roadmap items', rmErr.message);
   }
 
-  // Insert default setup items
-  const defaultSetupItems = [
-    { project_id: projectId, item_number: 1, title: 'Brand Guidelines', completed: false },
-    { project_id: projectId, item_number: 2, title: 'Logo Files', completed: false },
-    { project_id: projectId, item_number: 3, title: 'Content Audit', completed: false },
-    { project_id: projectId, item_number: 4, title: 'Competitor Analysis', completed: false },
-    { project_id: projectId, item_number: 5, title: 'User Research', completed: false },
-  ];
+  // Insert default setup items (type-specific)
+  const defaultSetupItems = buildDefaultSetupItems(projectId, project.type);
   const { error: siErr } = await supabase.from('setup_items').insert(defaultSetupItems);
   if (siErr) console.error('[db] createProject: failed to insert setup items', siErr.message);
 
@@ -982,14 +976,39 @@ export async function createSetupItem(item: {
   return mapSetupItem(data as Record<string, unknown>);
 }
 
-export async function seedDefaultSetupItems(projectId: string): Promise<SetupItem[]> {
-  const defaults = [
-    { project_id: projectId, item_number: 1, title: 'Brand Guidelines', completed: false },
-    { project_id: projectId, item_number: 2, title: 'Logo Files', completed: false },
-    { project_id: projectId, item_number: 3, title: 'Content Audit', completed: false },
-    { project_id: projectId, item_number: 4, title: 'Competitor Analysis', completed: false },
-    { project_id: projectId, item_number: 5, title: 'User Research', completed: false },
-  ];
+// ─── Setup item templates ─────────────────────────────────────────────────────
+
+const AI_SAAS_SETUP_ITEMS = [
+  { title: 'GitHub Username / Repo Access', value: 'Provide your GitHub username so we can push code to your repository.' },
+  { title: 'Hosting Preference', value: 'e.g. Vercel, Railway, Render, DigitalOcean — let us know where you want to deploy.' },
+  { title: 'Domain Name', value: 'Share your domain (e.g. yourdomain.com) or confirm if you need one purchased.' },
+  { title: 'Tech Stack Preferences', value: 'Any specific languages, frameworks, or databases you want us to use or avoid.' },
+  { title: 'API Keys / Third-Party Integrations', value: 'List any external services (OpenAI, Stripe, Twilio, etc.) and share credentials via your secure vault.' },
+];
+
+const CONTENT_DISTRIBUTION_SETUP_ITEMS = [
+  { title: 'Brand Guidelines', value: 'Upload or link your brand style guide — colours, fonts, tone of voice.' },
+  { title: 'Logo Files', value: 'Provide SVG/PNG logo files in light and dark variants.' },
+  { title: 'Content Audit', value: 'Share any existing content so we can plan distribution without duplication.' },
+  { title: 'Competitor Analysis', value: 'List 3–5 competitors whose content strategy you admire or want to outperform.' },
+  { title: 'User Research', value: 'Share any personas, surveys, or customer feedback that should inform the content.' },
+];
+
+function buildDefaultSetupItems(projectId: string, type: string) {
+  const templates = type === 'ai_saas' ? AI_SAAS_SETUP_ITEMS : CONTENT_DISTRIBUTION_SETUP_ITEMS;
+  return templates.map((t, i) => ({
+    project_id: projectId,
+    item_number: i + 1,
+    title: t.title,
+    value: t.value,
+    completed: false,
+  }));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function seedDefaultSetupItems(projectId: string, projectType: string): Promise<SetupItem[]> {
+  const defaults = buildDefaultSetupItems(projectId, projectType);
   const { data, error } = await supabase
     .from('setup_items')
     .insert(defaults)
