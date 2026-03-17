@@ -25,10 +25,8 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     success: true,
-    data: {
-      connected: !!user.telegramChatId,
-      chatId: user.telegramChatId || null,
-    },
+    connected: !!user.telegramChatId,
+    chatId: user.telegramChatId || null,
   });
 }
 
@@ -53,6 +51,7 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     success: true,
-    data: { deepLink, botUsername: BOT_USERNAME },
+    deepLink,
+    botUsername: BOT_USERNAME,
   });
 }
