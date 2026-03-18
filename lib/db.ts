@@ -99,7 +99,7 @@ function mapProject(row: Record<string, unknown>): Project {
     deliveries: [...deliveryRows]
       .sort((a, b) => (a.delivery_number as number) - (b.delivery_number as number))
       .map(mapDelivery),
-    githubUsername: n(row.github_username as string | null),
+    uiDesignPreference: n(row.github_username as string | null),
     demoVideoS3Key: n(row.demo_video_s3_key as string | null),
     proofOfCodeS3Key: n(row.proof_of_code_s3_key as string | null),
     hdPhotoS3Key: n(row.hd_photo_s3_key as string | null),
@@ -296,7 +296,7 @@ function toProjectUpdateRow(p: Partial<Project>): Record<string, unknown> {
   if (p.startDate !== undefined) row.start_date = p.startDate ? new Date(p.startDate).toISOString() : null;
   if (p.endDate !== undefined) row.end_date = p.endDate ? new Date(p.endDate).toISOString() : null;
   if (p.dailyProgress !== undefined) row.daily_progress = p.dailyProgress;
-  if (p.githubUsername !== undefined) row.github_username = p.githubUsername ?? null;
+  if (p.uiDesignPreference !== undefined) row.github_username = p.uiDesignPreference ?? null;
   if (p.demoVideoS3Key !== undefined) row.demo_video_s3_key = p.demoVideoS3Key ?? null;
   if (p.proofOfCodeS3Key !== undefined) row.proof_of_code_s3_key = p.proofOfCodeS3Key ?? null;
   if (p.hdPhotoS3Key !== undefined) row.hd_photo_s3_key = p.hdPhotoS3Key ?? null;
@@ -651,7 +651,7 @@ export async function createProject(project: Project): Promise<Project> {
     start_date: project.startDate ? new Date(project.startDate).toISOString() : null,
     end_date: project.endDate ? new Date(project.endDate).toISOString() : null,
     daily_progress: project.dailyProgress ?? [],
-    github_username: project.githubUsername ?? null,
+    github_username: project.uiDesignPreference ?? null,
     demo_video_s3_key: project.demoVideoS3Key ?? null,
     proof_of_code_s3_key: project.proofOfCodeS3Key ?? null,
     hd_photo_s3_key: project.hdPhotoS3Key ?? null,

@@ -540,7 +540,7 @@ export default function AdminProjectDetailPage() {
                   <FileLink label="Scope PDF" url={project.scopePDF} />
                   {project.type === 'ai_saas' && (
                     <>
-                      <Stat label="GitHub Username" value={project.githubUsername ?? 'Not submitted'} />
+                      <Stat label="UI Design Preference" value={project.uiDesignPreference ?? 'Not submitted'} />
                       <FileLink label="Demo Video" url={project.demoVideoS3Key} />
                       <FileLink label="Proof of Code" url={project.proofOfCodeS3Key} />
                     </>

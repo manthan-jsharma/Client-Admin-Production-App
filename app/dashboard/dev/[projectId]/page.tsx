@@ -202,6 +202,16 @@ export default function DevProjectDetailPage() {
                 <p style={{ fontSize: 13, color: '#5F6B76', lineHeight: 1.6 }}>{project.description}</p>
               </div>
             )}
+            {project.type === 'ai_saas' && (
+              <div style={{ ...CARD, padding: '16px 20px', gridColumn: '1 / -1', border: project.uiDesignPreference ? '1px solid #a7f3d0' : '1px solid #DDE5EC' }}>
+                <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#8A97A3', marginBottom: 6 }}>UI Design Preference</p>
+                {project.uiDesignPreference ? (
+                  <p style={{ fontSize: 13, color: '#334155', lineHeight: 1.6 }}>{project.uiDesignPreference}</p>
+                ) : (
+                  <p style={{ fontSize: 12, color: '#8A97A3', fontStyle: 'italic' }}>Client hasn't submitted their UI preference yet.</p>
+                )}
+              </div>
+            )}
           </div>
         )}
 

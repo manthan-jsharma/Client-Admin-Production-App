@@ -51,7 +51,7 @@ export interface Project {
   assignedDevs?: string[];
 
   // Division A — AI SaaS
-  githubUsername?: string;       // submitted by client
+  uiDesignPreference?: string;   // submitted by client
   demoVideoS3Key?: string;       // uploaded by client (S3)
   proofOfCodeS3Key?: string;     // uploaded by admin (S3)
 

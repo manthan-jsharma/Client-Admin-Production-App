@@ -11,7 +11,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Project, Delivery, SetupItem } from '@/lib/types';
 import {
   ArrowLeft, Brain, Film, CheckCircle2, Circle, Video,
-  Github, Upload, Check, X, ThumbsUp, ThumbsDown,
+  Upload, Check, X, ThumbsUp, ThumbsDown,
   FileText, Package, AlertCircle, Globe, Palette, Image, ExternalLink,
   ClipboardList, Pencil, Save,
 } from 'lucide-react';
@@ -75,10 +75,10 @@ export default function ClientProjectDetailPage() {
   const [signOffFeedback, setSignOffFeedback] = useState('');
   const [submittingSignOff, setSubmittingSignOff] = useState(false);
 
-  // GitHub submission
-  const [showGithubForm, setShowGithubForm] = useState(false);
-  const [githubUsername, setGithubUsername] = useState('');
-  const [submittingGithub, setSubmittingGithub] = useState(false);
+  // UI Design Preference
+  const [showUiForm, setShowUiForm] = useState(false);
+  const [uiDesignPreference, setUiDesignPreference] = useState('');
+  const [submittingUi, setSubmittingUi] = useState(false);
 
   // Content uploads (Div B)
   const [contentForm, setContentForm] = useState({
@@ -104,7 +104,7 @@ export default function ClientProjectDetailPage() {
       const result = await res.json();
       if (result.success) {
         setProject(result.data);
-        if (result.data.githubUsername) setGithubUsername(result.data.githubUsername);
+        if (result.data.uiDesignPreference) setUiDesignPreference(result.data.uiDesignPreference);
         setContentForm({
           hdPhotoS3Key: result.data.hdPhotoS3Key ?? '',
           teamSelfieVideoS3Key: result.data.teamSelfieVideoS3Key ?? '',
@@ -204,21 +204,21 @@ export default function ClientProjectDetailPage() {
     }
   };
 
-  const submitGithub = async (e: React.FormEvent) => {
+  const submitUiPreference = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmittingGithub(true);
+    setSubmittingUi(true);
     try {
       const res = await fetch(`/api/projects/${projectId}/meta`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ githubUsername }),
+        body: JSON.stringify({ uiDesignPreference }),
       });
       const result = await res.json();
-      if (result.success) { setProject(result.data); setShowGithubForm(false); }
+      if (result.success) { setProject(result.data); setShowUiForm(false); }
     } catch (error) {
-      console.error('Error submitting github:', error);
+      console.error('Error submitting UI preference:', error);
     } finally {
-      setSubmittingGithub(false);
+      setSubmittingUi(false);
     }
   };
 
@@ -422,49 +422,47 @@ export default function ClientProjectDetailPage() {
               </div>
             )}
 
-            {/* GitHub submission (AI SaaS) */}
+            {/* UI Design Preference (AI SaaS) */}
             {project.type === 'ai_saas' && (
               <div style={{ ...CARD, padding: '20px' }}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <Github className="w-4 h-4" style={{ color: '#5F6B76' }} />
-                    <p className="text-sm font-semibold" style={{ color: '#1E2A32' }}>GitHub Username</p>
+                    <Palette className="w-4 h-4" style={{ color: '#5F6B76' }} />
+                    <p className="text-sm font-semibold" style={{ color: '#1E2A32' }}>UI Design Preference</p>
                   </div>
-                  {!project.githubUsername && (
-                    <button
-                      onClick={() => setShowGithubForm(!showGithubForm)}
-                      className="rounded-xl h-8 px-3 text-xs font-medium transition-all active:scale-95"
-                      style={{ background: 'rgba(58,141,222,0.06)', color: '#334155', border: '1px solid #DDE5EC' }}
-                    >
-                      {showGithubForm ? 'Cancel' : 'Submit'}
-                    </button>
-                  )}
+                  <button
+                    onClick={() => setShowUiForm(!showUiForm)}
+                    className="rounded-xl h-8 px-3 text-xs font-medium transition-all active:scale-95"
+                    style={{ background: 'rgba(58,141,222,0.06)', color: '#334155', border: '1px solid #DDE5EC' }}
+                  >
+                    {showUiForm ? 'Cancel' : project.uiDesignPreference ? 'Edit' : 'Submit'}
+                  </button>
                 </div>
-                {project.githubUsername ? (
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4" style={{ color: '#6BCF7A' }} />
-                    <span className="text-sm font-mono" style={{ color: '#334155' }}>@{project.githubUsername}</span>
+                {project.uiDesignPreference && !showUiForm ? (
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#6BCF7A' }} />
+                    <span className="text-sm" style={{ color: '#334155' }}>{project.uiDesignPreference}</span>
                   </div>
-                ) : showGithubForm ? (
-                  <form onSubmit={submitGithub} className="flex gap-3">
+                ) : showUiForm ? (
+                  <form onSubmit={submitUiPreference} className="flex gap-3">
                     <Input
-                      value={githubUsername}
-                      onChange={e => setGithubUsername(e.target.value)}
-                      placeholder="your-github-username"
+                      value={uiDesignPreference}
+                      onChange={e => setUiDesignPreference(e.target.value)}
+                      placeholder="e.g. Minimal dark theme, inspired by Linear / Notion"
                       className="rounded-xl h-9 text-sm flex-1"
                       style={{ background: 'rgba(58,141,222,0.06)', borderColor: '#DDE5EC', color: '#1E2A32' }}
                       required
                     />
                     <button
                       type="submit"
-                      disabled={submittingGithub}
+                      disabled={submittingUi}
                       className="btn-primary rounded-xl h-9 px-4 text-sm font-medium transition-all active:scale-95 disabled:opacity-60"
                     >
-                      {submittingGithub ? 'Saving...' : 'Save'}
+                      {submittingUi ? 'Saving...' : 'Save'}
                     </button>
                   </form>
                 ) : (
-                  <p className="text-xs" style={{ color: '#8A97A3' }}>Submit your GitHub username so the admin can deliver code to your repository.</p>
+                  <p className="text-xs" style={{ color: '#8A97A3' }}>Describe your preferred UI style so the dev team can match your vision.</p>
                 )}
               </div>
             )}

@@ -27,8 +27,8 @@ export async function PATCH(
     const updates: Record<string, unknown> = {};
 
     if (payload.role === 'client') {
-      // Client submits GitHub username and demo video
-      const clientFields = ['githubUsername', 'demoVideoS3Key'];
+      // Client submits UI design preference and demo video
+      const clientFields = ['uiDesignPreference', 'demoVideoS3Key'];
       for (const key of clientFields) {
         if (key in body) updates[key] = body[key];
       }
