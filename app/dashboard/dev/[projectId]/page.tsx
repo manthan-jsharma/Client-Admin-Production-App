@@ -390,8 +390,14 @@ export default function DevProjectDetailPage() {
                       }
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: item.completed ? '#6BCF7A' : '#1E2A32', textDecoration: item.completed ? 'line-through' : 'none' }}>{item.title}</p>
-                      {item.value && <p style={{ fontSize: 12, color: '#5F6B76', marginTop: 3 }}>{item.value}</p>}
+                      <p style={{ fontSize: 13, fontWeight: 600, color: item.completed ? '#1E2A32' : '#8A97A3' }}>{item.title}</p>
+                      {item.completed && item.value ? (
+                        <p style={{ fontSize: 12, color: '#334155', marginTop: 4, padding: '5px 10px', background: 'rgba(107,207,122,0.08)', border: '1px solid #a7f3d0', borderRadius: 8 }}>
+                          <span style={{ color: '#6BCF7A', fontWeight: 600, fontSize: 11 }}>Client: </span>{item.value}
+                        </p>
+                      ) : (
+                        <p style={{ fontSize: 11, color: '#8A97A3', marginTop: 3, fontStyle: 'italic' }}>Awaiting client response</p>
+                      )}
                     </div>
                   </div>
                 ))}

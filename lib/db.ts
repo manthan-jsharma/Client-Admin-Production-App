@@ -1003,19 +1003,19 @@ export async function createSetupItem(item: {
 // ─── Setup item templates ─────────────────────────────────────────────────────
 
 const AI_SAAS_SETUP_ITEMS = [
-  { title: 'GitHub Username / Repo Access', value: 'Provide your GitHub username so we can push code to your repository.' },
-  { title: 'Hosting Preference', value: 'e.g. Vercel, Railway, Render, DigitalOcean — let us know where you want to deploy.' },
-  { title: 'Domain Name', value: 'Share your domain (e.g. yourdomain.com) or confirm if you need one purchased.' },
-  { title: 'Tech Stack Preferences', value: 'Any specific languages, frameworks, or databases you want us to use or avoid.' },
-  { title: 'API Keys / Third-Party Integrations', value: 'List any external services (OpenAI, Stripe, Twilio, etc.) and share credentials via your secure vault.' },
+  { title: 'GitHub Username / Repo Access', value: 'Share your GitHub username so we can add you as a collaborator and push code to your repo.' },
+  { title: 'Hosting Preference', value: 'Tell us your preferred platform — Vercel, Railway, Render, or DigitalOcean — or let us know if you need us to choose.' },
+  { title: 'Domain Name', value: 'Share your domain (e.g. yourdomain.com), or let us know if you need one purchased and we\'ll handle it.' },
+  { title: 'Tech Stack Preferences', value: 'List any languages, frameworks, or databases you want us to use or avoid (e.g. Next.js, PostgreSQL, no PHP).' },
+  { title: 'API Keys / Third-Party Integrations', value: 'List external services needed (OpenAI, Stripe, Twilio, etc.) and share credentials securely via the Uploads section.' },
 ];
 
 const CONTENT_DISTRIBUTION_SETUP_ITEMS = [
-  { title: 'Brand Guidelines', value: 'Upload or link your brand style guide — colours, fonts, tone of voice.' },
-  { title: 'Logo Files', value: 'Provide SVG/PNG logo files in light and dark variants.' },
-  { title: 'Content Audit', value: 'Share any existing content so we can plan distribution without duplication.' },
-  { title: 'Competitor Analysis', value: 'List 3–5 competitors whose content strategy you admire or want to outperform.' },
-  { title: 'User Research', value: 'Share any personas, surveys, or customer feedback that should inform the content.' },
+  { title: 'Brand Guidelines', value: 'Go to the Uploads section and upload your brand style guide — including colours, fonts, and tone of voice.' },
+  { title: 'Logo Files', value: 'Go to the Uploads section and upload your logo files in SVG or PNG format, both light and dark variants.' },
+  { title: 'Content Audit', value: 'Share links to or upload any existing content (posts, articles, videos) so we can plan without duplication.' },
+  { title: 'Competitor Analysis', value: 'Name 3–5 competitors whose content strategy you admire or want to outperform — include their website or social links.' },
+  { title: 'User Research', value: 'Upload or paste any customer personas, survey results, or feedback that should shape the content strategy.' },
 ];
 
 function buildDefaultSetupItems(projectId: string, type: string) {

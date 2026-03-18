@@ -93,12 +93,13 @@ export default function SetupPage() {
   };
 
   const saveValue = async (itemId: string) => {
+    if (!editValue.trim()) return;
     setSavingId(itemId);
     try {
       const res = await fetch(`/api/setup-items/${itemId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ value: editValue }),
+        body: JSON.stringify({ value: editValue.trim(), completed: true }),
       });
       const result = await res.json();
       if (result.success && activeProjectId) {
@@ -290,7 +291,7 @@ export default function SetupPage() {
                             <input
                               value={editValue}
                               onChange={e => setEditValue(e.target.value)}
-                              placeholder="Your response…"
+                              placeholder={item.completed ? 'Update your response…' : (item.value ?? 'Type your response…')}
                               className="flex-1 min-w-0 rounded-xl h-8 px-3 text-sm focus:outline-none"
                               style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC', color: '#1E2A32', minWidth: '120px' }}
                               autoFocus
@@ -319,7 +320,7 @@ export default function SetupPage() {
                             <p className="text-xs flex-1" style={{ color: '#5F6B76' }}>{item.value ?? '—'}</p>
                             {!item.completed && (
                               <button
-                                onClick={() => { setEditingId(item._id!); setEditValue(item.value ?? ''); }}
+                                onClick={() => { setEditingId(item._id!); setEditValue(item.completed ? (item.value ?? '') : ''); }}
                                 className="p-1 rounded transition-colors flex-shrink-0"
                                 style={{ color: '#8A97A3' }}
                                 onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#f1f5f9'; (e.currentTarget as HTMLButtonElement).style.color = '#334155'; }}
