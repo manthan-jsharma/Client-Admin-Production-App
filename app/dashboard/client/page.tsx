@@ -420,7 +420,7 @@ export default function ClientDashboard() {
             {/* cycling hint text */}
             <span
               style={{
-                fontSize: 15,
+                fontSize: 13,
                 color: "#8A97A3",
                 fontStyle: "italic",
                 whiteSpace: "nowrap",

@@ -135,7 +135,7 @@ export default function SetupPage() {
         heroStrip={true}
       />
 
-      <div className="p-8 space-y-6 animate-fade-up">
+      <div className="p-4 sm:p-6 md:p-8 space-y-6 animate-fade-up">
         {isLoading ? (
           <div className="flex justify-center items-center h-40">
             <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: 'rgba(58,141,222,0.2)', borderTopColor: '#3A8DDE' }} />
@@ -190,9 +190,9 @@ export default function SetupPage() {
               const ts = TYPE_STYLES[proj.type as keyof typeof TYPE_STYLES];
               return (
                 <div className="p-5" style={CARD}>
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-0.5">
+                  <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                         {ts && (
                           <span
                             className="text-xs px-2 py-0.5 rounded-full font-medium"
@@ -202,10 +202,10 @@ export default function SetupPage() {
                           </span>
                         )}
                       </div>
-                      <h2 className="text-base font-semibold" style={{ color: '#1E2A32', fontWeight: 800 }}>{proj.name}</h2>
+                      <h2 className="text-base font-semibold truncate" style={{ color: '#1E2A32', fontWeight: 800 }}>{proj.name}</h2>
                       <p className="text-xs mt-0.5" style={{ color: '#5F6B76' }}>{completedCount} of {activeItems.length} items completed</p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex-shrink-0">
                       <div
                         className="text-3xl font-bold"
                         style={{ color: progress === 100 ? '#6BCF7A' : '#3A8DDE' }}
@@ -254,7 +254,7 @@ export default function SetupPage() {
                       background: item.completed ? '#f0fdf4' : 'rgba(255,255,255,0.72)',
                     }}
                   >
-                    <div className="p-5 flex items-start gap-4">
+                    <div className="p-4 sm:p-5 flex items-start gap-3 sm:gap-4">
                       {/* Toggle / checkmark */}
                       <button
                         onClick={() => toggleItem(item._id!, item.completed)}
@@ -286,13 +286,13 @@ export default function SetupPage() {
                         </h3>
 
                         {editingId === item._id ? (
-                          <div className="flex gap-2 mt-1.5">
+                          <div className="flex flex-wrap gap-2 mt-1.5">
                             <input
                               value={editValue}
                               onChange={e => setEditValue(e.target.value)}
                               placeholder="Your response…"
-                              className="flex-1 rounded-xl h-8 px-3 text-sm focus:outline-none"
-                              style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC', color: '#1E2A32' }}
+                              className="flex-1 min-w-0 rounded-xl h-8 px-3 text-sm focus:outline-none"
+                              style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC', color: '#1E2A32', minWidth: '120px' }}
                               autoFocus
                               onFocus={e => { e.currentTarget.style.borderColor = '#3A8DDE'; }}
                               onBlur={e => { e.currentTarget.style.borderColor = '#DDE5EC'; }}
@@ -301,13 +301,14 @@ export default function SetupPage() {
                             <button
                               onClick={() => saveValue(item._id!)}
                               disabled={savingId === item._id}
-                              className="btn-primary rounded-xl h-8 px-3 text-xs flex items-center gap-1"
+                              className="rounded-xl h-8 px-3 text-xs flex items-center gap-1 font-semibold flex-shrink-0"
+                              style={{ background: '#3A8DDE', color: '#fff' }}
                             >
                               <Save className="w-3 h-3" /> Save
                             </button>
                             <button
                               onClick={() => setEditingId(null)}
-                              className="rounded-xl h-8 px-3 text-xs transition-all duration-150 active:scale-95"
+                              className="rounded-xl h-8 px-3 text-xs transition-all duration-150 active:scale-95 flex-shrink-0"
                               style={{ background: 'rgba(58,141,222,0.06)', color: '#334155', border: '1px solid #DDE5EC' }}
                             >
                               Cancel
@@ -340,7 +341,7 @@ export default function SetupPage() {
                       </div>
 
                       {/* Status badge */}
-                      <div className="flex-shrink-0">
+                      <div className="hidden sm:block flex-shrink-0">
                         {item.completed ? (
                           <span className="pill-info flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-full font-medium"
                             style={{ background: 'rgba(107,207,122,0.1)', color: '#6BCF7A', border: '1px solid #a7f3d0', borderRadius: '9999px' }}
