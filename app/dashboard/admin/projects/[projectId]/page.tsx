@@ -6,6 +6,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FileUploadField } from '@/components/ui/file-upload-field';
+import PageHeader from '@/components/ui/page-header';
+import EmptyState from '@/components/ui/empty-state';
 import { Project, Delivery, SetupItem } from '@/lib/types';
 import {
   ArrowLeft, Brain, Film, Calendar, DollarSign, User2,
@@ -16,18 +18,27 @@ import {
 
 type Tab = 'overview' | 'roadmap' | 'deliveries' | 'content' | 'setup';
 
-const STATUS_COLORS: Record<string, string> = {
-  pending: 'bg-slate-600/50 text-slate-400',
-  submitted: 'bg-blue-500/15 text-blue-400',
-  client_reviewing: 'bg-amber-500/15 text-amber-400',
-  approved: 'bg-emerald-500/15 text-emerald-400',
-  revision_requested: 'bg-red-500/15 text-red-400',
+const CARD = {
+  background: 'rgba(255,255,255,0.72)',
+  backdropFilter: 'blur(20px) saturate(1.6)',
+  WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
+  border: '1px solid rgba(255,255,255,0.55)',
+  borderRadius: 16,
+  boxShadow: '0 4px 24px rgba(30,40,60,0.08), inset 0 1px 0 rgba(255,255,255,0.85)',
 };
 
-const REVIEW_COLORS: Record<string, string> = {
-  pending_review: 'bg-amber-500/15 text-amber-400',
-  approved: 'bg-emerald-500/15 text-emerald-400',
-  revision_requested: 'bg-red-500/15 text-red-400',
+const STATUS_BADGE: Record<string, React.CSSProperties> = {
+  pending: { background: 'rgba(58,141,222,0.06)', color: '#5F6B76', border: '1px solid #DDE5EC', borderRadius: '9999px', fontSize: '11px', padding: '2px 10px', fontWeight: 600 },
+  submitted: { background: '#eff8ff', color: '#3A8DDE', border: '1px solid #c8dff0', borderRadius: '9999px', fontSize: '11px', padding: '2px 10px', fontWeight: 600 },
+  client_reviewing: { background: '#fffbeb', color: '#f59e0b', border: '1px solid #fde68a', borderRadius: '9999px', fontSize: '11px', padding: '2px 10px', fontWeight: 600 },
+  approved: { background: 'rgba(107,207,122,0.1)', color: '#6BCF7A', border: '1px solid #a7f3d0', borderRadius: '9999px', fontSize: '11px', padding: '2px 10px', fontWeight: 600 },
+  revision_requested: { background: '#fff1f2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: '9999px', fontSize: '11px', padding: '2px 10px', fontWeight: 600 },
+};
+
+const REVIEW_BADGE: Record<string, React.CSSProperties> = {
+  pending_review: { background: '#fffbeb', color: '#f59e0b', border: '1px solid #fde68a', borderRadius: '9999px', fontSize: '11px', padding: '2px 10px', fontWeight: 600 },
+  approved: { background: 'rgba(107,207,122,0.1)', color: '#6BCF7A', border: '1px solid #a7f3d0', borderRadius: '9999px', fontSize: '11px', padding: '2px 10px', fontWeight: 600 },
+  revision_requested: { background: '#fff1f2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: '9999px', fontSize: '11px', padding: '2px 10px', fontWeight: 600 },
 };
 
 export default function AdminProjectDetailPage() {
@@ -323,7 +334,7 @@ export default function AdminProjectDetailPage() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="w-8 h-8 border-2 border-slate-600 border-t-blue-500 rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: 'rgba(58,141,222,0.2)', borderTopColor: '#3A8DDE' }} />
       </div>
     );
   }
@@ -331,8 +342,11 @@ export default function AdminProjectDetailPage() {
   if (!project) {
     return (
       <div className="p-8 text-center">
-        <p className="text-slate-400">Project not found.</p>
-        <Button onClick={() => router.push('/dashboard/admin/projects')} className="mt-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl">
+        <p style={{ color: '#5F6B76' }}>Project not found.</p>
+        <Button
+          onClick={() => router.push('/dashboard/admin/projects')}
+          className="mt-4 btn-primary rounded-xl"
+        >
           Back to Projects
         </Button>
       </div>
@@ -341,8 +355,13 @@ export default function AdminProjectDetailPage() {
 
   const typeLabel = project.type === 'ai_saas' ? 'AI SaaS' : 'Content Distribution';
   const TypeIcon = project.type === 'ai_saas' ? Brain : Film;
-  const typeColor = project.type === 'ai_saas' ? 'text-violet-400' : 'text-amber-400';
-  const typeBg = project.type === 'ai_saas' ? 'bg-violet-500/15' : 'bg-amber-500/15';
+  const typeIconStyle: React.CSSProperties = project.type === 'ai_saas'
+    ? { color: '#8b5cf6' }
+    : { color: '#f59e0b' };
+  const typeBadgeStyle: React.CSSProperties = project.type === 'ai_saas'
+    ? { background: '#f5f3ff', color: '#8b5cf6', border: '1px solid #ddd6fe', borderRadius: '9999px', fontSize: '11px', padding: '2px 10px', fontWeight: 600 }
+    : { background: '#fffbeb', color: '#f59e0b', border: '1px solid #fde68a', borderRadius: '9999px', fontSize: '11px', padding: '2px 10px', fontWeight: 600 };
+  const typeIconBg = project.type === 'ai_saas' ? '#f5f3ff' : '#fffbeb';
 
   const completedDays = project.roadmap.filter(r => r.completed).length;
   const totalDays = project.roadmap.length;
@@ -356,41 +375,48 @@ export default function AdminProjectDetailPage() {
   ];
 
   return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <div className="px-8 pt-8 pb-6 border-b border-slate-800">
-        <button
-          onClick={() => router.push('/dashboard/admin/projects')}
-          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-white mb-4 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Projects
-        </button>
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`w-11 h-11 ${typeBg} rounded-xl flex items-center justify-center flex-shrink-0`}>
-              <TypeIcon className={`w-5.5 h-5.5 ${typeColor}`} />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white">{project.name}</h1>
-              <div className="flex items-center gap-2 mt-1">
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${typeBg} ${typeColor}`}>{typeLabel}</span>
-                <span className="text-xs text-slate-500">{project.clientId}</span>
-              </div>
-            </div>
+    <div className="min-h-screen" style={{ background: '#E9EEF2' }}>
+      <PageHeader
+        title={project?.name || 'Project'}
+        subtitle="Project details and deliverables"
+        breadcrumbs={[
+          { label: 'Admin', href: '/dashboard/admin' },
+          { label: 'Projects', href: '/dashboard/admin/projects' },
+          { label: project?.name || 'Project' },
+        ]}
+        heroStrip
+      />
+
+      {/* Sub-header: type badge + tab bar */}
+      <div className="px-8 pb-6 pt-4" style={{ background: '#ffffff', borderBottom: '1px solid #DDE5EC' }}>
+        <div className="flex items-center gap-3 mb-4">
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: typeIconBg }}
+          >
+            <TypeIcon className="w-4 h-4" style={typeIconStyle} />
+          </div>
+          <div className="flex items-center gap-2">
+            <span style={typeBadgeStyle}>{typeLabel}</span>
+            <span className="text-xs" style={{ color: '#8A97A3' }}>{project.clientId}</span>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 mt-6 border-b border-slate-800 -mb-6">
+        {/* Tab bar */}
+        <div
+          className="flex gap-1 p-1"
+          style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC', borderRadius: '12px', display: 'inline-flex' }}
+        >
           {tabs.map(t => (
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-all ${
+              className="px-4 py-2 text-sm font-medium rounded-lg transition-all"
+              style={
                 activeTab === t.id
-                  ? 'border-blue-500 text-blue-400'
-                  : 'border-transparent text-slate-500 hover:text-white'
-              }`}
+                  ? { background: '#ffffff', color: '#1E2A32', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }
+                  : { color: '#8A97A3' }
+              }
             >
               {t.label}
             </button>
@@ -402,26 +428,32 @@ export default function AdminProjectDetailPage() {
         {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            <Card className="bg-slate-800/60 border-slate-700/50 overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-700/50 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-white">Project Details</h2>
-                <Button
+            <div style={{ ...CARD, overflow: 'hidden' }}>
+              <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #f1f5f9' }}>
+                <h2 className="text-sm font-semibold" style={{ color: '#1E2A32', fontWeight: 800 }}>Project Details</h2>
+                <button
                   onClick={() => setEditingOverview(!editingOverview)}
-                  className="bg-slate-700 hover:bg-slate-600 text-white rounded-xl h-8 px-3 text-xs"
+                  className="rounded-xl h-8 px-3 text-xs font-medium transition-all active:scale-95"
+                  style={{ background: 'rgba(58,141,222,0.06)', color: '#334155', border: '1px solid #DDE5EC' }}
                 >
                   {editingOverview ? 'Cancel' : 'Edit'}
-                </Button>
+                </button>
               </div>
               {editingOverview ? (
                 <form onSubmit={saveOverview} className="p-6 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-slate-400">Project Name</label>
-                      <Input value={overviewForm.name} onChange={e => setOverviewForm(f => ({ ...f, name: e.target.value }))} className="bg-slate-700 border-slate-600 text-white rounded-xl h-9 text-sm" />
+                      <label className="text-xs font-medium" style={{ color: '#5F6B76' }}>Project Name</label>
+                      <Input value={overviewForm.name} onChange={e => setOverviewForm(f => ({ ...f, name: e.target.value }))} className="rounded-xl h-9 text-sm" style={{ background: 'rgba(58,141,222,0.06)', borderColor: '#DDE5EC', color: '#1E2A32' }} />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-slate-400">Status</label>
-                      <select value={overviewForm.status} onChange={e => setOverviewForm(f => ({ ...f, status: e.target.value }))} className="w-full h-9 px-3 bg-slate-700 border border-slate-600 text-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                      <label className="text-xs font-medium" style={{ color: '#5F6B76' }}>Status</label>
+                      <select
+                        value={overviewForm.status}
+                        onChange={e => setOverviewForm(f => ({ ...f, status: e.target.value }))}
+                        className="w-full h-9 px-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/40"
+                        style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC', color: '#1E2A32' }}
+                      >
                         <option value="planning">Planning</option>
                         <option value="active">Active</option>
                         <option value="on-hold">On Hold</option>
@@ -429,8 +461,8 @@ export default function AdminProjectDetailPage() {
                       </select>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-slate-400">Total Price (USD)</label>
-                      <Input type="number" value={overviewForm.totalPrice} onChange={e => setOverviewForm(f => ({ ...f, totalPrice: e.target.value }))} className="bg-slate-700 border-slate-600 text-white rounded-xl h-9 text-sm" />
+                      <label className="text-xs font-medium" style={{ color: '#5F6B76' }}>Total Price (USD)</label>
+                      <Input type="number" value={overviewForm.totalPrice} onChange={e => setOverviewForm(f => ({ ...f, totalPrice: e.target.value }))} className="rounded-xl h-9 text-sm" style={{ background: 'rgba(58,141,222,0.06)', borderColor: '#DDE5EC', color: '#1E2A32' }} />
                     </div>
                     <div className="space-y-1.5">
                       <FileUploadField
@@ -468,21 +500,31 @@ export default function AdminProjectDetailPage() {
                       </div>
                     )}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-slate-400">Start Date</label>
-                      <Input type="date" value={overviewForm.startDate} onChange={e => setOverviewForm(f => ({ ...f, startDate: e.target.value }))} className="bg-slate-700 border-slate-600 text-white rounded-xl h-9 text-sm" />
+                      <label className="text-xs font-medium" style={{ color: '#5F6B76' }}>Start Date</label>
+                      <Input type="date" value={overviewForm.startDate} onChange={e => setOverviewForm(f => ({ ...f, startDate: e.target.value }))} className="rounded-xl h-9 text-sm" style={{ background: 'rgba(58,141,222,0.06)', borderColor: '#DDE5EC', color: '#1E2A32' }} />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-slate-400">End Date</label>
-                      <Input type="date" value={overviewForm.endDate} onChange={e => setOverviewForm(f => ({ ...f, endDate: e.target.value }))} className="bg-slate-700 border-slate-600 text-white rounded-xl h-9 text-sm" />
+                      <label className="text-xs font-medium" style={{ color: '#5F6B76' }}>End Date</label>
+                      <Input type="date" value={overviewForm.endDate} onChange={e => setOverviewForm(f => ({ ...f, endDate: e.target.value }))} className="rounded-xl h-9 text-sm" style={{ background: 'rgba(58,141,222,0.06)', borderColor: '#DDE5EC', color: '#1E2A32' }} />
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-slate-400">Description</label>
-                    <textarea value={overviewForm.description} onChange={e => setOverviewForm(f => ({ ...f, description: e.target.value }))} rows={2} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none" />
+                    <label className="text-xs font-medium" style={{ color: '#5F6B76' }}>Description</label>
+                    <textarea
+                      value={overviewForm.description}
+                      onChange={e => setOverviewForm(f => ({ ...f, description: e.target.value }))}
+                      rows={2}
+                      className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/40 resize-none"
+                      style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC', color: '#1E2A32' }}
+                    />
                   </div>
-                  <Button type="submit" disabled={savingOverview} className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl h-9 px-4 text-sm">
+                  <button
+                    type="submit"
+                    disabled={savingOverview}
+                    className="btn-primary rounded-xl h-9 px-4 text-sm font-medium transition-all active:scale-95 disabled:opacity-60"
+                  >
                     {savingOverview ? 'Saving...' : 'Save Changes'}
-                  </Button>
+                  </button>
                 </form>
               ) : (
                 <div className="p-6 grid grid-cols-2 md:grid-cols-3 gap-5">
@@ -501,12 +543,12 @@ export default function AdminProjectDetailPage() {
                   )}
                 </div>
               )}
-            </Card>
+            </div>
 
-            <Card className="bg-slate-800/60 border-slate-700/50 p-6">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Description</p>
-              <p className="text-sm text-slate-300 leading-relaxed">{project.description}</p>
-            </Card>
+            <div style={{ ...CARD, padding: '24px' }}>
+              <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: '#8A97A3' }}>Description</p>
+              <p className="text-sm leading-relaxed" style={{ color: '#334155' }}>{project.description}</p>
+            </div>
           </div>
         )}
 
@@ -514,90 +556,111 @@ export default function AdminProjectDetailPage() {
         {activeTab === 'roadmap' && project.type === 'ai_saas' && (
           <div className="space-y-3">
             {project.roadmap.length === 0 ? (
-              <Card className="bg-slate-800/60 border-slate-700/50 p-12 text-center">
-                <div className="w-14 h-14 bg-slate-700/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Video className="w-7 h-7 text-slate-600" />
+              <div style={{ ...CARD, padding: '48px', textAlign: 'center' }}>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: '#f1f5f9' }}>
+                  <Video className="w-7 h-7" style={{ color: '#8A97A3' }} />
                 </div>
-                <p className="text-slate-400 font-medium mb-1.5">Roadmap not initialised</p>
-                <p className="text-slate-600 text-sm mb-5">Create the 14-day roadmap so you can add video URLs and progress updates for the client.</p>
-                <Button
+                <p className="font-medium mb-1.5" style={{ color: '#5F6B76' }}>Roadmap not initialised</p>
+                <p className="text-sm mb-5" style={{ color: '#8A97A3' }}>Create the 14-day roadmap so you can add video URLs and progress updates for the client.</p>
+                <button
                   onClick={initializeRoadmap}
                   disabled={initializingRoadmap}
-                  className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl h-9 px-5 text-sm flex items-center gap-2 mx-auto"
+                  className="btn-primary rounded-xl h-9 px-5 text-sm font-medium flex items-center gap-2 mx-auto transition-all active:scale-95 disabled:opacity-60"
                 >
                   {initializingRoadmap
                     ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Initialising…</>
                     : <><Plus className="w-3.5 h-3.5" /> Initialise 14-Day Roadmap</>}
-                </Button>
-              </Card>
+                </button>
+              </div>
             ) : (
               <>
-                <p className="text-xs text-slate-500">Click any day to edit its title, description, video URL, and mark it complete. The client can watch the video on their Roadmap page.</p>
-            {project.roadmap.map(item => (
-              <Card key={item.day} className={`border transition-all duration-200 ${item.completed ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-slate-800/60 border-slate-700/50'}`}>
-                <div className="p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      {item.completed
-                        ? <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                        : <Circle className="w-5 h-5 text-slate-600 flex-shrink-0" />
-                      }
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-slate-500">DAY {item.day}</span>
-                          {item.videoUrl && <Video className="w-3 h-3 text-blue-400" />}
+                <p className="text-xs" style={{ color: '#8A97A3' }}>Click any day to edit its title, description, video URL, and mark it complete. The client can watch the video on their Roadmap page.</p>
+                {project.roadmap.map(item => (
+                  <div
+                    key={item.day}
+                    style={{
+                      background: item.completed ? '#f0fdf4' : '#ffffff',
+                      border: item.completed ? '1px solid #a7f3d0' : '1px solid #DDE5EC',
+                      borderLeft: item.completed ? '3px solid #6BCF7A' : '3px solid #DDE5EC',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                      borderRadius: '16px',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <div className="p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {item.completed
+                            ? <CheckCircle2 className="w-5 h-5 flex-shrink-0" style={{ color: '#6BCF7A' }} />
+                            : <Circle className="w-5 h-5 flex-shrink-0" style={{ color: '#DDE5EC' }} />
+                          }
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold" style={{ color: '#8A97A3' }}>DAY {item.day}</span>
+                              {item.videoUrl && <Video className="w-3 h-3" style={{ color: '#3A8DDE' }} />}
+                            </div>
+                            <p className="text-sm font-semibold" style={{ color: '#1E2A32' }}>{item.title}</p>
+                            {item.description && <p className="text-xs mt-0.5 line-clamp-1" style={{ color: '#8A97A3' }}>{item.description}</p>}
+                          </div>
                         </div>
-                        <p className="text-sm font-semibold text-white">{item.title}</p>
-                        {item.description && <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{item.description}</p>}
+                        <button
+                          onClick={() => editingDay === item.day ? setEditingDay(null) : openDayEdit(item.day)}
+                          className="flex items-center gap-1 text-xs transition-colors flex-shrink-0"
+                          style={{ color: '#8A97A3' }}
+                        >
+                          {editingDay === item.day ? <><ChevronUp className="w-4 h-4" /> Close</> : <><ChevronDown className="w-4 h-4" /> Edit</>}
+                        </button>
                       </div>
-                    </div>
-                    <button
-                      onClick={() => editingDay === item.day ? setEditingDay(null) : openDayEdit(item.day)}
-                      className="flex items-center gap-1 text-xs text-slate-500 hover:text-white transition-colors flex-shrink-0"
-                    >
-                      {editingDay === item.day ? <><ChevronUp className="w-4 h-4" /> Close</> : <><ChevronDown className="w-4 h-4" /> Edit</>}
-                    </button>
-                  </div>
 
-                  {editingDay === item.day && (
-                    <div className="mt-4 pt-4 border-t border-slate-700/50 space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-xs text-slate-500 mb-1 block">Title</label>
-                          <Input value={dayForm.title} onChange={e => setDayForm(f => ({ ...f, title: e.target.value }))} className="bg-slate-700 border-slate-600 text-white rounded-xl h-9 text-sm" />
+                      {editingDay === item.day && (
+                        <div className="mt-4 pt-4 space-y-3" style={{ borderTop: '1px solid #f1f5f9' }}>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-xs mb-1 block" style={{ color: '#8A97A3' }}>Title</label>
+                              <Input value={dayForm.title} onChange={e => setDayForm(f => ({ ...f, title: e.target.value }))} className="rounded-xl h-9 text-sm" style={{ background: 'rgba(58,141,222,0.06)', borderColor: '#DDE5EC', color: '#1E2A32' }} />
+                            </div>
+                            <div>
+                              <label className="text-xs mb-1 block" style={{ color: '#8A97A3' }}>Video URL</label>
+                              <Input value={dayForm.videoUrl} onChange={e => setDayForm(f => ({ ...f, videoUrl: e.target.value }))} placeholder="https://youtu.be/..." className="rounded-xl h-9 text-sm" style={{ background: 'rgba(58,141,222,0.06)', borderColor: '#DDE5EC', color: '#1E2A32' }} />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-xs mb-1 block" style={{ color: '#8A97A3' }}>Description</label>
+                            <textarea
+                              value={dayForm.description}
+                              onChange={e => setDayForm(f => ({ ...f, description: e.target.value }))}
+                              rows={2}
+                              className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/40 resize-none"
+                              style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC', color: '#1E2A32' }}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs mb-1 block" style={{ color: '#8A97A3' }}>Admin Notes (internal)</label>
+                            <Input value={dayForm.adminNotes} onChange={e => setDayForm(f => ({ ...f, adminNotes: e.target.value }))} placeholder="Internal notes..." className="rounded-xl h-9 text-sm" style={{ background: 'rgba(58,141,222,0.06)', borderColor: '#DDE5EC', color: '#1E2A32' }} />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={dayForm.completed}
+                                onChange={e => setDayForm(f => ({ ...f, completed: e.target.checked }))}
+                                className="w-4 h-4 rounded accent-emerald-500"
+                              />
+                              <span className="text-sm" style={{ color: '#334155' }}>Mark as completed</span>
+                            </label>
+                            <button
+                              onClick={saveDay}
+                              disabled={savingDay}
+                              className="btn-primary rounded-xl h-8 px-4 text-xs font-medium flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-60"
+                            >
+                              <Save className="w-3.5 h-3.5" />{savingDay ? 'Saving...' : 'Save Day'}
+                            </button>
+                          </div>
                         </div>
-                        <div>
-                          <label className="text-xs text-slate-500 mb-1 block">Video URL</label>
-                          <Input value={dayForm.videoUrl} onChange={e => setDayForm(f => ({ ...f, videoUrl: e.target.value }))} placeholder="https://youtu.be/..." className="bg-slate-700 border-slate-600 text-white rounded-xl h-9 text-sm placeholder-slate-600" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-xs text-slate-500 mb-1 block">Description</label>
-                        <textarea value={dayForm.description} onChange={e => setDayForm(f => ({ ...f, description: e.target.value }))} rows={2} className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none" />
-                      </div>
-                      <div>
-                        <label className="text-xs text-slate-500 mb-1 block">Admin Notes (internal)</label>
-                        <Input value={dayForm.adminNotes} onChange={e => setDayForm(f => ({ ...f, adminNotes: e.target.value }))} placeholder="Internal notes..." className="bg-slate-700 border-slate-600 text-white rounded-xl h-9 text-sm placeholder-slate-600" />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={dayForm.completed}
-                            onChange={e => setDayForm(f => ({ ...f, completed: e.target.checked }))}
-                            className="w-4 h-4 rounded accent-emerald-500"
-                          />
-                          <span className="text-sm text-slate-300">Mark as completed</span>
-                        </label>
-                        <Button onClick={saveDay} disabled={savingDay} className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl h-8 px-4 text-xs flex items-center gap-1.5">
-                          <Save className="w-3.5 h-3.5" />{savingDay ? 'Saving...' : 'Save Day'}
-                        </Button>
-                      </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </Card>
-            ))}
+                  </div>
+                ))}
               </>
             )}
           </div>
@@ -607,34 +670,42 @@ export default function AdminProjectDetailPage() {
         {activeTab === 'deliveries' && (
           <div className="space-y-5">
             <div className="flex justify-between items-center">
-              <p className="text-xs text-slate-500">Per-delivery approval cards. Client reviews and signs off on each delivery.</p>
-              <Button
+              <p className="text-xs" style={{ color: '#8A97A3' }}>Per-delivery approval cards. Client reviews and signs off on each delivery.</p>
+              <button
                 onClick={() => setShowDeliveryForm(!showDeliveryForm)}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl h-9 px-4 text-sm"
+                className="btn-primary flex items-center gap-2 rounded-xl h-9 px-4 text-sm font-medium transition-all active:scale-95"
               >
                 <Plus className="w-4 h-4" /> Add Delivery
-              </Button>
+              </button>
             </div>
 
             {showDeliveryForm && (
-              <Card className="bg-slate-800/60 border-slate-700/50 overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-slate-700/50 bg-slate-700/20">
-                  <h3 className="text-sm font-semibold text-white">New Delivery Card</h3>
+              <div style={{ ...CARD, overflow: 'hidden' }}>
+                <div className="px-5 py-3.5" style={{ borderBottom: '1px solid #f1f5f9', background: 'rgba(58,141,222,0.06)' }}>
+                  <h3 className="text-sm font-semibold" style={{ color: '#1E2A32', fontWeight: 800 }}>New Delivery Card</h3>
                 </div>
                 <form onSubmit={createDelivery} className="p-5 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs text-slate-400 mb-1 block">Delivery # (e.g. 3 for D3)</label>
-                      <Input type="number" value={deliveryForm.deliveryNumber} onChange={e => setDeliveryForm(f => ({ ...f, deliveryNumber: e.target.value }))} placeholder="1" className="bg-slate-700 border-slate-600 text-white rounded-xl h-9 text-sm" required />
+                      <label className="text-xs mb-1 block" style={{ color: '#5F6B76' }}>Delivery # (e.g. 3 for D3)</label>
+                      <Input type="number" value={deliveryForm.deliveryNumber} onChange={e => setDeliveryForm(f => ({ ...f, deliveryNumber: e.target.value }))} placeholder="1" className="rounded-xl h-9 text-sm" style={{ background: 'rgba(58,141,222,0.06)', borderColor: '#DDE5EC', color: '#1E2A32' }} required />
                     </div>
                     <div>
-                      <label className="text-xs text-slate-400 mb-1 block">Title</label>
-                      <Input value={deliveryForm.title} onChange={e => setDeliveryForm(f => ({ ...f, title: e.target.value }))} placeholder="Core Auth System" className="bg-slate-700 border-slate-600 text-white rounded-xl h-9 text-sm" required />
+                      <label className="text-xs mb-1 block" style={{ color: '#5F6B76' }}>Title</label>
+                      <Input value={deliveryForm.title} onChange={e => setDeliveryForm(f => ({ ...f, title: e.target.value }))} placeholder="Core Auth System" className="rounded-xl h-9 text-sm" style={{ background: 'rgba(58,141,222,0.06)', borderColor: '#DDE5EC', color: '#1E2A32' }} required />
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Description</label>
-                    <textarea value={deliveryForm.description} onChange={e => setDeliveryForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="What's included in this delivery..." className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none" required />
+                    <label className="text-xs mb-1 block" style={{ color: '#5F6B76' }}>Description</label>
+                    <textarea
+                      value={deliveryForm.description}
+                      onChange={e => setDeliveryForm(f => ({ ...f, description: e.target.value }))}
+                      rows={2}
+                      placeholder="What's included in this delivery..."
+                      className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/40 resize-none"
+                      style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC', color: '#1E2A32' }}
+                      required
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -649,64 +720,92 @@ export default function AdminProjectDetailPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-slate-400 mb-1 block">Admin Notes (internal)</label>
-                      <Input value={deliveryForm.adminNotes} onChange={e => setDeliveryForm(f => ({ ...f, adminNotes: e.target.value }))} placeholder="Notes for yourself..." className="bg-slate-700 border-slate-600 text-white rounded-xl h-9 text-sm placeholder-slate-600" />
+                      <label className="text-xs mb-1 block" style={{ color: '#5F6B76' }}>Admin Notes (internal)</label>
+                      <Input value={deliveryForm.adminNotes} onChange={e => setDeliveryForm(f => ({ ...f, adminNotes: e.target.value }))} placeholder="Notes for yourself..." className="rounded-xl h-9 text-sm" style={{ background: 'rgba(58,141,222,0.06)', borderColor: '#DDE5EC', color: '#1E2A32' }} />
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    <Button type="submit" disabled={savingDelivery} className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl h-9 px-4 text-sm">
+                    <button
+                      type="submit"
+                      disabled={savingDelivery}
+                      className="btn-primary rounded-xl h-9 px-4 text-sm font-medium transition-all active:scale-95 disabled:opacity-60"
+                    >
                       {savingDelivery ? 'Creating...' : 'Create Delivery'}
-                    </Button>
-                    <Button type="button" onClick={() => setShowDeliveryForm(false)} className="bg-slate-700 hover:bg-slate-600 text-white rounded-xl h-9 px-4 text-sm">Cancel</Button>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowDeliveryForm(false)}
+                      className="rounded-xl h-9 px-4 text-sm font-medium transition-all active:scale-95"
+                      style={{ background: 'rgba(58,141,222,0.06)', color: '#334155', border: '1px solid #DDE5EC' }}
+                    >
+                      Cancel
+                    </button>
                   </div>
                 </form>
-              </Card>
+              </div>
             )}
 
             {deliveries.length === 0 ? (
-              <Card className="bg-slate-800/60 border-slate-700/50 p-12 text-center">
-                <Package className="w-8 h-8 text-slate-600 mx-auto mb-3" />
-                <p className="text-slate-400 text-sm">No deliveries yet. Add the first delivery card above.</p>
-              </Card>
+              <EmptyState
+                icon={<Package className="w-8 h-8" style={{ color: '#8A97A3' }} />}
+                title="No deliveries yet"
+                description="Add the first delivery card above."
+              />
             ) : (
               deliveries.map(d => (
-                <Card key={d._id} className="bg-slate-800/60 border-slate-700/50">
+                <div key={d._id} style={{ ...CARD, transition: 'all 0.2s' }} className="hover:-translate-y-0.5">
                   <div className="p-5">
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-bold text-blue-400">D{d.deliveryNumber}</span>
-                          <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[d.status] ?? 'bg-slate-600/50 text-slate-400'}`}>
-                            {d.status.replace('_', ' ')}
-                          </span>
+                          <span className="text-xs font-bold" style={{ color: '#3A8DDE' }}>D{d.deliveryNumber}</span>
+                          {d.status === 'approved' || d.status === 'completed'
+                            ? <span className="pill-info">{d.status.replace('_', ' ')}</span>
+                            : d.status === 'pending'
+                            ? <span className="pill-pending">{d.status.replace('_', ' ')}</span>
+                            : d.status === 'revision_requested'
+                            ? <span className="pill-rejected">{d.status.replace('_', ' ')}</span>
+                            : <span className="pill-muted">{d.status.replace('_', ' ')}</span>
+                          }
                         </div>
-                        <h3 className="text-sm font-semibold text-white">{d.title}</h3>
+                        <h3 className="text-sm font-semibold" style={{ color: '#1E2A32' }}>{d.title}</h3>
                       </div>
                       <div className="flex gap-2 flex-shrink-0">
                         {d.status === 'pending' && (
-                          <Button onClick={() => updateDeliveryStatus(d._id!, { status: 'client_reviewing', proofS3Key: d.proofS3Key })} className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl h-7 px-3 text-xs">Send for Review</Button>
+                          <button
+                            onClick={() => updateDeliveryStatus(d._id!, { status: 'client_reviewing', proofS3Key: d.proofS3Key })}
+                            className="btn-primary rounded-xl h-7 px-3 text-xs font-medium transition-all active:scale-95"
+                          >
+                            Send for Review
+                          </button>
                         )}
                         {d.status === 'revision_requested' && (
-                          <Button onClick={() => updateDeliveryStatus(d._id!, { status: 'client_reviewing' })} className="bg-amber-600 hover:bg-amber-500 text-white rounded-xl h-7 px-3 text-xs">Re-send</Button>
+                          <button
+                            onClick={() => updateDeliveryStatus(d._id!, { status: 'client_reviewing' })}
+                            className="rounded-xl h-7 px-3 text-xs font-medium transition-all active:scale-95"
+                            style={{ background: '#fffbeb', color: '#f59e0b', border: '1px solid #fde68a' }}
+                          >
+                            Re-send
+                          </button>
                         )}
                       </div>
                     </div>
-                    <p className="text-xs text-slate-400 mb-3">{d.description}</p>
+                    <p className="text-xs mb-3" style={{ color: '#5F6B76' }}>{d.description}</p>
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       {d.proofS3Key && (
-                      <div className="text-slate-500">
-                        Proof:{' '}
-                        <a href={d.proofS3Key} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 font-mono text-[11px]">
-                          {d.proofS3Key.split('/').pop()}↗
-                        </a>
-                      </div>
-                    )}
-                      {d.adminNotes && <div className="text-slate-500">Notes: <span className="text-slate-400">{d.adminNotes}</span></div>}
-                      {d.clientFeedback && <div className="col-span-2 text-slate-500">Client feedback: <span className="text-slate-300">"{d.clientFeedback}"</span></div>}
-                      {d.signedOffAt && <div className="text-emerald-500">Signed off: {new Date(d.signedOffAt).toLocaleDateString()}</div>}
+                        <div style={{ color: '#8A97A3' }}>
+                          Proof:{' '}
+                          <a href={d.proofS3Key} target="_blank" rel="noopener noreferrer" className="font-mono text-[11px] transition-colors" style={{ color: '#3A8DDE' }}>
+                            {d.proofS3Key.split('/').pop()}↗
+                          </a>
+                        </div>
+                      )}
+                      {d.adminNotes && <div style={{ color: '#8A97A3' }}>Notes: <span style={{ color: '#5F6B76' }}>{d.adminNotes}</span></div>}
+                      {d.clientFeedback && <div className="col-span-2" style={{ color: '#8A97A3' }}>Client feedback: <span style={{ color: '#334155' }}>"{d.clientFeedback}"</span></div>}
+                      {d.signedOffAt && <div style={{ color: '#6BCF7A' }}>Signed off: {new Date(d.signedOffAt).toLocaleDateString()}</div>}
                     </div>
                   </div>
-                </Card>
+                </div>
               ))
             )}
           </div>
@@ -717,30 +816,42 @@ export default function AdminProjectDetailPage() {
           <div className="space-y-6">
             <form onSubmit={saveContent} className="space-y-5">
               {/* Client Upload Review */}
-              <Card className="bg-slate-800/60 border-slate-700/50 overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-700/50 bg-slate-700/20">
-                  <h2 className="text-sm font-semibold text-white">Client Uploads — Review</h2>
+              <div style={{ ...CARD, overflow: 'hidden' }}>
+                <div className="px-6 py-4" style={{ borderBottom: '1px solid #f1f5f9', background: 'rgba(58,141,222,0.06)' }}>
+                  <h2 className="text-sm font-semibold" style={{ color: '#1E2A32', fontWeight: 800 }}>Client Uploads — Review</h2>
                 </div>
                 <div className="p-6 space-y-5">
                   {/* HD Photo */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-medium text-slate-300">HD Photo</label>
+                      <label className="text-sm font-medium" style={{ color: '#334155' }}>HD Photo</label>
                       {project.hdPhotoS3Key
-                        ? <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${REVIEW_COLORS[project.hdPhotoStatus ?? 'pending_review'] ?? 'bg-slate-600/50 text-slate-400'}`}>{project.hdPhotoStatus ?? 'pending_review'}</span>
-                        : <span className="text-xs text-slate-600">Not uploaded</span>
+                        ? <span style={REVIEW_BADGE[project.hdPhotoStatus ?? 'pending_review'] ?? REVIEW_BADGE.pending_review}>{project.hdPhotoStatus ?? 'pending_review'}</span>
+                        : <span className="text-xs" style={{ color: '#8A97A3' }}>Not uploaded</span>
                       }
                     </div>
                     {project.hdPhotoS3Key && (
-                      <a href={project.hdPhotoS3Key} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 mb-3 bg-slate-700/40 rounded-lg px-3 py-1.5 transition-colors">
+                      <a
+                        href={project.hdPhotoS3Key}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs mb-3 rounded-lg px-3 py-1.5 transition-colors"
+                        style={{ color: '#3A8DDE', background: '#eff8ff' }}
+                      >
                         <ExternalLink className="w-3 h-3 flex-shrink-0" />
                         <span className="truncate font-mono">{project.hdPhotoS3Key.split('/').pop()}</span>
                       </a>
                     )}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs text-slate-500 mb-1 block">Status</label>
-                        <select value={contentForm.hdPhotoStatus} onChange={e => setContentForm(f => ({ ...f, hdPhotoStatus: e.target.value }))} className="w-full h-9 px-3 bg-slate-700 border border-slate-600 text-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" disabled={!project.hdPhotoS3Key}>
+                        <label className="text-xs mb-1 block" style={{ color: '#8A97A3' }}>Status</label>
+                        <select
+                          value={contentForm.hdPhotoStatus}
+                          onChange={e => setContentForm(f => ({ ...f, hdPhotoStatus: e.target.value }))}
+                          disabled={!project.hdPhotoS3Key}
+                          className="w-full h-9 px-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/40"
+                          style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC', color: '#1E2A32' }}
+                        >
                           <option value="">Awaiting upload</option>
                           <option value="pending_review">Pending Review</option>
                           <option value="approved">Approved</option>
@@ -748,31 +859,50 @@ export default function AdminProjectDetailPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="text-xs text-slate-500 mb-1 block">Feedback to client</label>
-                        <Input value={contentForm.hdPhotoAdminFeedback} onChange={e => setContentForm(f => ({ ...f, hdPhotoAdminFeedback: e.target.value }))} placeholder="e.g. Please use better lighting" className="bg-slate-700 border-slate-600 text-white rounded-xl h-9 text-sm placeholder-slate-600" disabled={!project.hdPhotoS3Key} />
+                        <label className="text-xs mb-1 block" style={{ color: '#8A97A3' }}>Feedback to client</label>
+                        <Input
+                          value={contentForm.hdPhotoAdminFeedback}
+                          onChange={e => setContentForm(f => ({ ...f, hdPhotoAdminFeedback: e.target.value }))}
+                          placeholder="e.g. Please use better lighting"
+                          disabled={!project.hdPhotoS3Key}
+                          className="rounded-xl h-9 text-sm"
+                          style={{ background: 'rgba(58,141,222,0.06)', borderColor: '#DDE5EC', color: '#1E2A32' }}
+                        />
                       </div>
                     </div>
                   </div>
 
                   {/* Team Selfie Video */}
-                  <div className="pt-4 border-t border-slate-700/50">
+                  <div className="pt-4" style={{ borderTop: '1px solid #f1f5f9' }}>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-medium text-slate-300">Team Selfie Video</label>
+                      <label className="text-sm font-medium" style={{ color: '#334155' }}>Team Selfie Video</label>
                       {project.teamSelfieVideoS3Key
-                        ? <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${REVIEW_COLORS[project.teamSelfieVideoStatus ?? 'pending_review'] ?? 'bg-slate-600/50 text-slate-400'}`}>{project.teamSelfieVideoStatus ?? 'pending_review'}</span>
-                        : <span className="text-xs text-slate-600">Not uploaded</span>
+                        ? <span style={REVIEW_BADGE[project.teamSelfieVideoStatus ?? 'pending_review'] ?? REVIEW_BADGE.pending_review}>{project.teamSelfieVideoStatus ?? 'pending_review'}</span>
+                        : <span className="text-xs" style={{ color: '#8A97A3' }}>Not uploaded</span>
                       }
                     </div>
                     {project.teamSelfieVideoS3Key && (
-                      <a href={project.teamSelfieVideoS3Key} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 mb-3 bg-slate-700/40 rounded-lg px-3 py-1.5 transition-colors">
+                      <a
+                        href={project.teamSelfieVideoS3Key}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs mb-3 rounded-lg px-3 py-1.5 transition-colors"
+                        style={{ color: '#3A8DDE', background: '#eff8ff' }}
+                      >
                         <ExternalLink className="w-3 h-3 flex-shrink-0" />
                         <span className="truncate font-mono">{project.teamSelfieVideoS3Key.split('/').pop()}</span>
                       </a>
                     )}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs text-slate-500 mb-1 block">Status</label>
-                        <select value={contentForm.teamSelfieVideoStatus} onChange={e => setContentForm(f => ({ ...f, teamSelfieVideoStatus: e.target.value }))} className="w-full h-9 px-3 bg-slate-700 border border-slate-600 text-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40" disabled={!project.teamSelfieVideoS3Key}>
+                        <label className="text-xs mb-1 block" style={{ color: '#8A97A3' }}>Status</label>
+                        <select
+                          value={contentForm.teamSelfieVideoStatus}
+                          onChange={e => setContentForm(f => ({ ...f, teamSelfieVideoStatus: e.target.value }))}
+                          disabled={!project.teamSelfieVideoS3Key}
+                          className="w-full h-9 px-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/40"
+                          style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC', color: '#1E2A32' }}
+                        >
                           <option value="">Awaiting upload</option>
                           <option value="pending_review">Pending Review</option>
                           <option value="approved">Approved</option>
@@ -780,18 +910,25 @@ export default function AdminProjectDetailPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="text-xs text-slate-500 mb-1 block">Feedback to client</label>
-                        <Input value={contentForm.teamSelfieVideoAdminFeedback} onChange={e => setContentForm(f => ({ ...f, teamSelfieVideoAdminFeedback: e.target.value }))} placeholder="e.g. Video needs to be HD" className="bg-slate-700 border-slate-600 text-white rounded-xl h-9 text-sm placeholder-slate-600" disabled={!project.teamSelfieVideoS3Key} />
+                        <label className="text-xs mb-1 block" style={{ color: '#8A97A3' }}>Feedback to client</label>
+                        <Input
+                          value={contentForm.teamSelfieVideoAdminFeedback}
+                          onChange={e => setContentForm(f => ({ ...f, teamSelfieVideoAdminFeedback: e.target.value }))}
+                          placeholder="e.g. Video needs to be HD"
+                          disabled={!project.teamSelfieVideoS3Key}
+                          className="rounded-xl h-9 text-sm"
+                          style={{ background: 'rgba(58,141,222,0.06)', borderColor: '#DDE5EC', color: '#1E2A32' }}
+                        />
                       </div>
                     </div>
                   </div>
                 </div>
-              </Card>
+              </div>
 
               {/* AI Clone Sample Upload */}
-              <Card className="bg-slate-800/60 border-slate-700/50 overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-700/50 bg-slate-700/20">
-                  <h2 className="text-sm font-semibold text-white">AI Clone Sample</h2>
+              <div style={{ ...CARD, overflow: 'hidden' }}>
+                <div className="px-6 py-4" style={{ borderBottom: '1px solid #f1f5f9', background: 'rgba(58,141,222,0.06)' }}>
+                  <h2 className="text-sm font-semibold" style={{ color: '#1E2A32', fontWeight: 800 }}>AI Clone Sample</h2>
                 </div>
                 <div className="p-6 space-y-3">
                   <FileUploadField
@@ -805,38 +942,42 @@ export default function AdminProjectDetailPage() {
                   />
                   {project.aiCloneSampleS3Key && (
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="text-xs text-slate-500">Client review status:</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${REVIEW_COLORS[project.aiCloneApprovalStatus ?? 'pending_review'] ?? 'bg-slate-600/50 text-slate-400'}`}>
+                      <span className="text-xs" style={{ color: '#8A97A3' }}>Client review status:</span>
+                      <span style={REVIEW_BADGE[project.aiCloneApprovalStatus ?? 'pending_review'] ?? REVIEW_BADGE.pending_review}>
                         {project.aiCloneApprovalStatus ?? 'Awaiting upload'}
                       </span>
                     </div>
                   )}
                   {project.aiCloneClientFeedback && (
-                    <p className="text-xs text-slate-400">Client feedback: <span className="text-slate-300">"{project.aiCloneClientFeedback}"</span></p>
+                    <p className="text-xs" style={{ color: '#5F6B76' }}>Client feedback: <span style={{ color: '#334155' }}>"{project.aiCloneClientFeedback}"</span></p>
                   )}
                 </div>
-              </Card>
+              </div>
 
               {/* Client Branding Info */}
               {(project.domainName || project.designPreferences || project.logoS3Key) && (
-                <Card className="bg-slate-800/60 border-slate-700/50 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-slate-700/50 bg-slate-700/20">
-                    <h2 className="text-sm font-semibold text-white">Client Branding Info</h2>
+                <div style={{ ...CARD, overflow: 'hidden' }}>
+                  <div className="px-6 py-4" style={{ borderBottom: '1px solid #f1f5f9', background: 'rgba(58,141,222,0.06)' }}>
+                    <h2 className="text-sm font-semibold" style={{ color: '#1E2A32', fontWeight: 800 }}>Client Branding Info</h2>
                   </div>
                   <div className="p-6 grid grid-cols-3 gap-5">
                     <Stat label="Domain Name" value={project.domainName ?? 'Not provided'} />
                     <FileLink label="Logo" url={project.logoS3Key} />
                     <div>
-                      <p className="text-xs text-slate-500 mb-1">Design Preferences</p>
-                      <p className="text-sm text-slate-300">{project.designPreferences ?? 'Not provided'}</p>
+                      <p className="text-xs mb-1" style={{ color: '#8A97A3' }}>Design Preferences</p>
+                      <p className="text-sm" style={{ color: '#334155' }}>{project.designPreferences ?? 'Not provided'}</p>
                     </div>
                   </div>
-                </Card>
+                </div>
               )}
 
-              <Button type="submit" disabled={savingContent} className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl h-10 px-5 text-sm shadow-lg shadow-blue-600/20">
+              <button
+                type="submit"
+                disabled={savingContent}
+                className="btn-primary rounded-xl h-10 px-5 text-sm font-medium transition-all active:scale-95 disabled:opacity-60"
+              >
                 {savingContent ? 'Saving...' : 'Save Content Review'}
-              </Button>
+              </button>
             </form>
           </div>
         )}
@@ -845,26 +986,35 @@ export default function AdminProjectDetailPage() {
         {activeTab === 'setup' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-slate-500">
+              <p className="text-xs" style={{ color: '#8A97A3' }}>
                 {project.type === 'ai_saas' ? '14-Day Scope' : '7-Day Scope'} — manage the onboarding checklist. Clients see and complete these from their Setup tab.
               </p>
               {setupItems.length === 0 && (
-                <Button
+                <button
                   onClick={initializeSetup}
                   disabled={initializingSetup}
-                  className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl h-8 px-3 text-xs"
+                  className="btn-primary flex items-center gap-1.5 rounded-xl h-8 px-3 text-xs font-medium transition-all active:scale-95 disabled:opacity-60"
                 >
                   {initializingSetup
                     ? <><RefreshCw className="w-3 h-3 animate-spin" /> Initialising…</>
                     : <><RefreshCw className="w-3 h-3" /> Initialise Defaults</>}
-                </Button>
+                </button>
               )}
             </div>
 
             {setupItems.length > 0 ? (
               <div className="space-y-2">
                 {setupItems.map(item => (
-                  <Card key={item._id} className={`border transition-all ${item.completed ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-slate-800/60 border-slate-700/50'}`}>
+                  <div
+                    key={item._id}
+                    style={{
+                      background: item.completed ? '#f0fdf4' : '#ffffff',
+                      border: item.completed ? '1px solid #a7f3d0' : '1px solid #DDE5EC',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                      borderRadius: '12px',
+                      transition: 'all 0.2s',
+                    }}
+                  >
                     <div className="p-4">
                       {editingSetupId === item._id ? (
                         <div className="space-y-2">
@@ -872,51 +1022,70 @@ export default function AdminProjectDetailPage() {
                             value={editSetupForm.title}
                             onChange={e => setEditSetupForm(f => ({ ...f, title: e.target.value }))}
                             placeholder="Item title"
-                            className="bg-slate-700 border-slate-600 text-white rounded-xl h-8 text-sm"
+                            className="rounded-xl h-8 text-sm"
+                            style={{ background: 'rgba(58,141,222,0.06)', borderColor: '#DDE5EC', color: '#1E2A32' }}
                           />
                           <Input
                             value={editSetupForm.value}
                             onChange={e => setEditSetupForm(f => ({ ...f, value: e.target.value }))}
                             placeholder="Description / value (optional)"
-                            className="bg-slate-700 border-slate-600 text-white rounded-xl h-8 text-sm"
+                            className="rounded-xl h-8 text-sm"
+                            style={{ background: 'rgba(58,141,222,0.06)', borderColor: '#DDE5EC', color: '#1E2A32' }}
                           />
                           <div className="flex gap-2">
-                            <Button onClick={() => saveSetupEdit(item._id!)} className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl h-7 px-3 text-xs flex items-center gap-1">
+                            <button
+                              onClick={() => saveSetupEdit(item._id!)}
+                              className="btn-primary rounded-xl h-7 px-3 text-xs font-medium flex items-center gap-1 transition-all active:scale-95"
+                            >
                               <Save className="w-3 h-3" /> Save
-                            </Button>
-                            <Button onClick={() => setEditingSetupId(null)} className="bg-slate-700 hover:bg-slate-600 text-white rounded-xl h-7 px-3 text-xs">Cancel</Button>
+                            </button>
+                            <button
+                              onClick={() => setEditingSetupId(null)}
+                              className="rounded-xl h-7 px-3 text-xs font-medium transition-all active:scale-95"
+                              style={{ background: 'rgba(58,141,222,0.06)', color: '#334155', border: '1px solid #DDE5EC' }}
+                            >
+                              Cancel
+                            </button>
                           </div>
                         </div>
                       ) : (
                         <div className="flex items-center gap-3">
                           <button
                             onClick={() => toggleSetupItem(item._id!, item.completed)}
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all ${item.completed ? 'bg-emerald-500 hover:bg-emerald-400' : 'bg-slate-700 border border-slate-600 hover:border-blue-500'}`}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all"
+                            style={item.completed
+                              ? { background: '#6BCF7A' }
+                              : { background: '#ffffff', border: '1px solid #DDE5EC' }
+                            }
                           >
-                            {item.completed ? <Check className="w-4 h-4 text-white" /> : <span className="text-xs font-bold text-slate-400">{item.itemNumber}</span>}
+                            {item.completed
+                              ? <Check className="w-4 h-4 text-white" />
+                              : <span className="text-xs font-bold" style={{ color: '#8A97A3' }}>{item.itemNumber}</span>
+                            }
                           </button>
                           <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-medium ${item.completed ? 'line-through text-slate-500' : 'text-white'}`}>{item.title}</p>
-                            {item.value && <p className="text-xs text-slate-500 mt-0.5">{item.value}</p>}
+                            <p className="text-sm font-medium" style={{ color: item.completed ? '#8A97A3' : '#1E2A32', textDecoration: item.completed ? 'line-through' : 'none' }}>{item.title}</p>
+                            {item.value && <p className="text-xs mt-0.5" style={{ color: '#8A97A3' }}>{item.value}</p>}
                           </div>
                           <button
                             onClick={() => { setEditingSetupId(item._id!); setEditSetupForm({ title: item.title, value: item.value ?? '' }); }}
-                            className="p-1.5 hover:bg-slate-700 rounded-lg text-slate-500 hover:text-white transition-colors"
+                            className="p-1.5 rounded-lg transition-colors"
+                            style={{ color: '#8A97A3' }}
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       )}
                     </div>
-                  </Card>
+                  </div>
                 ))}
               </div>
             ) : (
-              <Card className="bg-slate-800/60 border-slate-700/50 p-10 text-center">
-                <Settings2 className="w-8 h-8 text-slate-600 mx-auto mb-3" />
-                <p className="text-slate-400 text-sm mb-1">No setup items yet</p>
-                <p className="text-slate-600 text-xs">Use "Initialise Defaults" to add the {project.type === 'ai_saas' ? '5 AI SaaS onboarding items (GitHub, hosting, domain, tech stack, API keys)' : '5 content distribution items (brand guidelines, logo, content audit, etc.)'}, or add custom ones below.</p>
-              </Card>
+              <EmptyState
+                icon={<Settings2 className="w-8 h-8" style={{ color: '#8A97A3' }} />}
+                title="No setup items yet"
+                description={`Use "Initialise Defaults" to add the ${project.type === 'ai_saas' ? '5 AI SaaS onboarding items (GitHub, hosting, domain, tech stack, API keys)' : '5 content distribution items (brand guidelines, logo, content audit, etc.)'}, or add custom ones below.`}
+              />
             )}
 
             {/* Add new item */}
@@ -926,15 +1095,16 @@ export default function AdminProjectDetailPage() {
                 onChange={e => setNewSetupTitle(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSetupItem(); } }}
                 placeholder="Add a custom setup item…"
-                className="bg-slate-800 border-slate-700 text-white rounded-xl h-9 text-sm flex-1"
+                className="rounded-xl h-9 text-sm flex-1"
+                style={{ background: '#ffffff', border: '1px solid #DDE5EC', color: '#1E2A32' }}
               />
-              <Button
+              <button
                 onClick={addSetupItem}
                 disabled={addingSetupItem || !newSetupTitle.trim()}
-                className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl h-9 px-4 text-sm flex items-center gap-1.5"
+                className="btn-primary rounded-xl h-9 px-4 text-sm font-medium flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
               >
                 <Plus className="w-3.5 h-3.5" /> Add
-              </Button>
+              </button>
             </div>
           </div>
         )}
@@ -946,8 +1116,8 @@ export default function AdminProjectDetailPage() {
 function Stat({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <p className="text-xs text-slate-500 mb-0.5">{label}</p>
-      <p className={`text-sm text-slate-300 ${mono ? 'font-mono text-xs' : 'font-medium'}`}>{value}</p>
+      <p className="text-xs mb-0.5" style={{ color: '#8A97A3' }}>{label}</p>
+      <p className={`text-sm font-medium ${mono ? 'font-mono text-xs' : ''}`} style={{ color: '#334155' }}>{value}</p>
     </div>
   );
 }
@@ -955,14 +1125,20 @@ function Stat({ label, value, mono = false }: { label: string; value: string; mo
 function FileLink({ label, url }: { label: string; url?: string | null }) {
   return (
     <div>
-      <p className="text-xs text-slate-500 mb-0.5">{label}</p>
+      <p className="text-xs mb-0.5" style={{ color: '#8A97A3' }}>{label}</p>
       {url ? (
-        <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors font-mono">
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 text-xs transition-colors font-mono"
+          style={{ color: '#3A8DDE' }}
+        >
           <ExternalLink className="w-3 h-3 flex-shrink-0" />
           <span className="truncate">{url.split('/').pop()}</span>
         </a>
       ) : (
-        <p className="text-sm text-slate-500">Not uploaded</p>
+        <p className="text-sm" style={{ color: '#8A97A3' }}>Not uploaded</p>
       )}
     </div>
   );

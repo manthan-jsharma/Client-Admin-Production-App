@@ -23,11 +23,13 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
     const { searchParams } = new URL(request.url);
     let projectId = searchParams.get('projectId');
     const sinceParam = searchParams.get('since');
+    const beforeParam = searchParams.get('before');
+    const PAGE_SIZE = 50;
 
     // Resolve projectId
     if (!projectId) {
       const projects = await getProjectsByUserId(payload.userId, payload.role);
-      if (projects.length === 0) return NextResponse.json({ success: true, data: [] });
+      if (projects.length === 0) return NextResponse.json({ success: true, data: [], hasMore: false });
       projectId = projects[0]._id!;
     }
 
@@ -39,14 +41,31 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
     }
 
     let messages: ChatMessage[];
+    let hasMore = false;
+
     if (sinceParam) {
+      // Polling for new messages only
       const since = new Date(sinceParam);
       messages = await getMessagesSince(projectId, since);
+    } else if (beforeParam) {
+      // Infinite scroll — load older page
+      const before = new Date(beforeParam);
+      // Fetch one extra to detect hasMore
+      messages = await getProjectMessages(projectId, PAGE_SIZE + 1, before);
+      if (messages.length > PAGE_SIZE) {
+        hasMore = true;
+        messages = messages.slice(1); // drop the extra (oldest) one, keep PAGE_SIZE newest
+      }
     } else {
-      messages = await getProjectMessages(projectId, 100);
+      // Initial load — latest PAGE_SIZE messages
+      messages = await getProjectMessages(projectId, PAGE_SIZE + 1);
+      if (messages.length > PAGE_SIZE) {
+        hasMore = true;
+        messages = messages.slice(1);
+      }
     }
 
-    return NextResponse.json({ success: true, data: messages });
+    return NextResponse.json({ success: true, data: messages, hasMore });
   } catch (error) {
     console.error('Error fetching messages:', error);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });

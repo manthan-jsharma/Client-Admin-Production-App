@@ -2,364 +2,395 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { Card } from '@/components/ui/card';
 import { Project, User, Payment } from '@/lib/types';
 import Link from 'next/link';
 import {
-  FolderKanban,
-  Users,
-  TrendingUp,
-  DollarSign,
-  ArrowUpRight,
-  Clock,
-  CheckCircle2,
-  ChevronRight,
-  Brain,
-  Film,
+  FolderKanban, Users, TrendingUp, DollarSign,
+  Clock, CheckCircle2, ChevronRight, Brain, Film, Sparkles,
 } from 'lucide-react';
+import { useCountUp } from '@/lib/use-count-up';
+import { StatCardSkeleton, RowSkeleton } from '@/components/ui/skeleton';
+import { Sparkline } from '@/components/ui/sparkline';
+import { DonutRing } from '@/components/ui/donut-ring';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 
-function StatCard({
-  label, value, icon: Icon, iconColor, iconBg, trend, trendLabel,
-}: {
-  label: string; value: string | number; icon: React.ElementType;
-  iconColor: string; iconBg: string; trend?: string; trendLabel?: string;
-}) {
-  return (
-    <Card className="bg-slate-800/60 border-slate-700/50 p-5 hover:border-slate-600 transition-all duration-200">
-      <div className="flex items-start justify-between mb-4">
-        <div className={`w-10 h-10 ${iconBg} rounded-xl flex items-center justify-center`}>
-          <Icon className={`w-5 h-5 ${iconColor}`} />
-        </div>
-        {trend && (
-          <span className="flex items-center gap-1 text-xs font-medium text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-full">
-            <ArrowUpRight className="w-3 h-3" />
-            {trend}
-          </span>
-        )}
-      </div>
-      <div className="text-2xl font-bold text-white mb-0.5">{value}</div>
-      <div className="text-sm text-slate-400">{label}</div>
-      {trendLabel && <div className="text-xs text-slate-500 mt-1">{trendLabel}</div>}
-    </Card>
-  );
+function projectProgress(project: Project): number {
+  if (project.roadmap?.length > 0)
+    return Math.round(project.roadmap.filter(r => r.completed).length / project.roadmap.length * 100);
+  return 0;
 }
 
-/** Returns 0-100 roadmap progress for a project. */
-function projectProgress(project: Project): number {
-  if (project.roadmap && project.roadmap.length > 0) {
-    const done = project.roadmap.filter(r => r.completed).length;
-    return Math.round((done / project.roadmap.length) * 100);
-  }
-  return 0;
+const GLASS_CARD: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.72)',
+  backdropFilter: 'blur(20px) saturate(1.6)',
+  WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
+  border: '1px solid rgba(255,255,255,0.55)',
+  boxShadow: '0 4px 24px rgba(58,141,222,0.08), 0 1px 4px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.85)',
+  borderRadius: '18px',
+};
+
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg,#3A8DDE,#2F6FB2)',
+  'linear-gradient(135deg,#8b5cf6,#6d28d9)',
+  'linear-gradient(135deg,#6BCF7A,#4BAD5E)',
+  'linear-gradient(135deg,#f59e0b,#d97706)',
+  'linear-gradient(135deg,#ef4444,#dc2626)',
+];
+
+// Fake sparkline data — last 7 ticks
+function seededSpark(base: number, variance = 0.3): number[] {
+  return Array.from({ length: 7 }, (_, i) =>
+    Math.max(0, base * (1 - variance + Math.sin(i * 1.3) * variance * 0.6 + Math.random() * variance * 0.4))
+  );
 }
 
 export default function AdminDashboard() {
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [clients, setClients] = useState<User[]>([]);
+  const [clients, setClients]   = useState<User[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [progressVisible, setProgressVisible] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
     Promise.all([
-      fetch('/api/projects',      { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-      fetch('/api/admin/clients', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-      fetch('/api/admin/payments',{ headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-    ]).then(([projRes, clientsRes, payRes]) => {
-      if (projRes.success)    setProjects(projRes.data);
-      if (clientsRes.success) setClients(clientsRes.data);
-      if (payRes.success)     setPayments(payRes.data);
-    }).catch(console.error).finally(() => setIsLoading(false));
+      fetch('/api/projects',       { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+      fetch('/api/admin/clients',  { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+      fetch('/api/admin/payments', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+    ]).then(([pR, cR, payR]) => {
+      if (pR.success)   setProjects(pR.data);
+      if (cR.success)   setClients(cR.data);
+      if (payR.success) setPayments(payR.data);
+    }).catch(console.error).finally(() => {
+      setIsLoading(false);
+      setTimeout(() => setProgressVisible(true), 120);
+    });
   }, []);
 
-  // ─── Computed stats ──────────────────────────────────────────────────────────
-
   const activeProjects = projects.filter(p => p.status === 'active').length;
+  const aiProjects     = projects.filter(p => p.type === 'ai_saas' && p.roadmap?.length > 0);
+  const avgProgress    = aiProjects.length
+    ? Math.round(aiProjects.reduce((s, p) => s + projectProgress(p), 0) / aiProjects.length) : 0;
+  const totalRevenue   = payments.filter(p => p.status === 'paid').reduce((s, p) => s + (p.amount ?? 0), 0);
 
-  const avgProgress = (() => {
-    const aiProjects = projects.filter(p => p.type === 'ai_saas' && p.roadmap?.length > 0);
-    if (!aiProjects.length) return 0;
-    const total = aiProjects.reduce((sum, p) => sum + projectProgress(p), 0);
-    return Math.round(total / aiProjects.length);
-  })();
+  const countProjects = useCountUp(projects.length, 900, !isLoading);
+  const countClients  = useCountUp(clients.length,  900, !isLoading);
+  const countProgress = useCountUp(avgProgress,    1000, !isLoading);
+  const countRevenue  = useCountUp(totalRevenue,   1200, !isLoading);
 
-  const totalRevenue = payments
-    .filter(p => p.status === 'paid')
-    .reduce((sum, p) => sum + (p.amount ?? 0), 0);
+  const stats = [
+    {
+      label: 'Total Projects', display: String(countProjects),
+      sub: `${activeProjects} active`, icon: FolderKanban,
+      accent: '#3A8DDE', accentBg: 'rgba(58,141,222,0.1)', accentBorder: 'rgba(58,141,222,0.2)',
+      bar: 'linear-gradient(90deg,#3A8DDE,#6FB2F2)',
+      spark: seededSpark(projects.length || 4, 0.4),
+      sparkColor: '#3A8DDE',
+    },
+    {
+      label: 'Active Clients', display: String(countClients),
+      sub: 'Registered', icon: Users,
+      accent: '#6BCF7A', accentBg: 'rgba(107,207,122,0.1)', accentBorder: 'rgba(107,207,122,0.2)',
+      bar: 'linear-gradient(90deg,#6BCF7A,#8FE388)',
+      spark: seededSpark(clients.length || 3, 0.3),
+      sparkColor: '#6BCF7A',
+    },
+    {
+      label: 'Avg. Progress', display: `${countProgress}%`,
+      sub: 'Across AI SaaS', icon: TrendingUp,
+      accent: '#8b5cf6', accentBg: 'rgba(139,92,246,0.1)', accentBorder: 'rgba(139,92,246,0.2)',
+      bar: 'linear-gradient(90deg,#8b5cf6,#a78bfa)',
+      spark: seededSpark(avgProgress || 50, 0.25),
+      sparkColor: '#8b5cf6',
+      donut: true,
+      donutColor: '#8b5cf6',
+      donutValue: avgProgress,
+    },
+    {
+      label: 'Total Revenue',
+      display: countRevenue >= 1000 ? `$${(countRevenue / 1000).toFixed(1)}K` : `$${countRevenue}`,
+      sub: 'From paid invoices', icon: DollarSign,
+      accent: '#f59e0b', accentBg: 'rgba(245,158,11,0.1)', accentBorder: 'rgba(245,158,11,0.2)',
+      bar: 'linear-gradient(90deg,#f59e0b,#fbbf24)',
+      spark: seededSpark(totalRevenue || 5000, 0.35),
+      sparkColor: '#f59e0b',
+    },
+  ];
 
-  // ─── Activity feed derived from real data ────────────────────────────────────
   type ActivityItem = { icon: React.ElementType; color: string; bg: string; text: string; time: string; sortKey: number };
-
   const activityItems: ActivityItem[] = [];
 
-  // Recent projects
   [...projects]
     .sort((a, b) => new Date(b.startDate ?? 0).getTime() - new Date(a.startDate ?? 0).getTime())
-    .slice(0, 2)
-    .forEach(p => {
-      activityItems.push({
-        icon: FolderKanban,
-        color: 'text-blue-400',
-        bg: 'bg-blue-400/10',
-        text: `Project "${p.name}" is ${p.status}`,
-        time: new Date(p.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        sortKey: new Date(p.startDate ?? 0).getTime(),
-      });
-    });
+    .slice(0, 2).forEach(p => activityItems.push({
+      icon: FolderKanban, color: '#3A8DDE', bg: 'rgba(58,141,222,0.1)',
+      text: `Project "${p.name}" is ${p.status}`,
+      time: new Date(p.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      sortKey: new Date(p.startDate ?? 0).getTime(),
+    }));
 
-  // Recent clients
   [...clients]
     .sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
-    .slice(0, 2)
-    .forEach(c => {
-      activityItems.push({
-        icon: Users,
-        color: 'text-emerald-400',
-        bg: 'bg-emerald-400/10',
-        text: `Client "${c.name}" joined`,
-        time: c.createdAt ? new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recently',
-        sortKey: new Date(c.createdAt ?? 0).getTime(),
-      });
-    });
+    .slice(0, 2).forEach(c => activityItems.push({
+      icon: Users, color: '#6BCF7A', bg: 'rgba(107,207,122,0.1)',
+      text: `${c.name} joined as client`,
+      time: c.createdAt ? new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recently',
+      sortKey: new Date(c.createdAt ?? 0).getTime(),
+    }));
 
-  // Recent paid payments
-  [...payments]
-    .filter(p => p.status === 'paid')
+  [...payments].filter(p => p.status === 'paid')
     .sort((a, b) => new Date(b.paidDate ?? b.createdAt ?? 0).getTime() - new Date(a.paidDate ?? a.createdAt ?? 0).getTime())
-    .slice(0, 2)
-    .forEach(p => {
+    .slice(0, 2).forEach(p => {
       const proj = projects.find(pr => pr._id === p.projectId);
       activityItems.push({
-        icon: DollarSign,
-        color: 'text-amber-400',
-        bg: 'bg-amber-400/10',
-        text: `Payment $${p.amount?.toLocaleString()} received${proj ? ` for "${proj.name}"` : ''}`,
+        icon: DollarSign, color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',
+        text: `$${p.amount?.toLocaleString()} received${proj ? ` · ${proj.name}` : ''}`,
         time: p.paidDate ? new Date(p.paidDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recently',
         sortKey: new Date(p.paidDate ?? p.createdAt ?? 0).getTime(),
       });
     });
 
-  // Completed roadmap days
-  projects
-    .filter(p => p.type === 'ai_saas')
-    .forEach(p => {
-      p.roadmap?.filter(r => r.completed).slice(-1).forEach(r => {
-        activityItems.push({
-          icon: CheckCircle2,
-          color: 'text-purple-400',
-          bg: 'bg-purple-400/10',
-          text: `Day ${r.day} completed for "${p.name}"`,
-          time: 'Recently',
-          sortKey: 0,
-        });
-      });
-    });
+  projects.filter(p => p.type === 'ai_saas').forEach(p => {
+    p.roadmap?.filter(r => r.completed).slice(-1).forEach(r => activityItems.push({
+      icon: CheckCircle2, color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)',
+      text: `Day ${r.day} completed · ${p.name}`,
+      time: 'Recently', sortKey: 0,
+    }));
+  });
 
-  const sortedActivity = activityItems
-    .sort((a, b) => b.sortKey - a.sortKey)
-    .slice(0, 5);
+  const sortedActivity = activityItems.sort((a, b) => b.sortKey - a.sortKey).slice(0, 5);
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
   return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <div className="px-8 pt-8 pb-6 border-b border-slate-800">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm text-slate-500 mb-1">Good morning,</p>
-            <h1 className="text-2xl font-bold text-white">{user?.name || 'Admin'} 👋</h1>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-slate-500">Today</p>
-            <p className="text-sm font-medium text-slate-300">
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+    <div style={{ minHeight: '100vh', background: '#E9EEF2' }}>
+      <PageHeader
+        title={user?.name || 'Admin'}
+        subtitle="Here's what's happening across all your projects today."
+        greeting={greeting}
+        greetingIcon={Sparkles}
+        heroStrip
+        meta={
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8A97A3', marginBottom: 2 }}>Today</p>
+            <p style={{ fontSize: 13, fontWeight: 600, color: '#5F6B76' }}>
+              {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
             </p>
           </div>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="p-8 space-y-6">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          <StatCard
-            label="Total Projects"
-            value={projects.length}
-            icon={FolderKanban}
-            iconColor="text-blue-400"
-            iconBg="bg-blue-400/10"
-            trendLabel={`${activeProjects} active`}
-          />
-          <StatCard
-            label="Active Clients"
-            value={clients.length}
-            icon={Users}
-            iconColor="text-emerald-400"
-            iconBg="bg-emerald-400/10"
-            trendLabel={`${activeProjects} active project${activeProjects !== 1 ? 's' : ''}`}
-          />
-          <StatCard
-            label="Avg. Roadmap Progress"
-            value={`${avgProgress}%`}
-            icon={TrendingUp}
-            iconColor="text-purple-400"
-            iconBg="bg-purple-400/10"
-            trendLabel="AI SaaS projects"
-          />
-          <StatCard
-            label="Total Revenue"
-            value={totalRevenue >= 1000 ? `$${(totalRevenue / 1000).toFixed(1)}K` : `$${totalRevenue}`}
-            icon={DollarSign}
-            iconColor="text-amber-400"
-            iconBg="bg-amber-400/10"
-            trendLabel="From paid invoices"
-          />
+      <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Stat cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }} className="xl:grid-cols-4">
+          <style>{`@media(min-width:1280px){.stat-grid{grid-template-columns:repeat(4,1fr)!important}}`}</style>
+          {isLoading
+            ? [0,1,2,3].map(i => <StatCardSkeleton key={i} />)
+            : stats.map((s, idx) => {
+                const Icon = s.icon;
+                return (
+                  <div
+                    key={s.label}
+                    className="shimmer-hover animate-fade-up"
+                    style={{ ...GLASS_CARD, animationDelay: `${idx * 70}ms`, overflow: 'hidden', position: 'relative', cursor: 'default', transition: 'transform 0.2s, box-shadow 0.2s' }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+                      (e.currentTarget as HTMLElement).style.boxShadow = `0 12px 40px rgba(58,141,222,0.13), 0 4px 12px rgba(0,0,0,0.06)`;
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                      (e.currentTarget as HTMLElement).style.boxShadow = GLASS_CARD.boxShadow as string;
+                    }}
+                  >
+                    {/* Top gradient bar */}
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: s.bar, borderRadius: '18px 18px 0 0' }} />
+
+                    <div style={{ padding: '20px 20px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: s.accentBg, border: `1px solid ${s.accentBorder}` }}>
+                          <Icon style={{ width: 16, height: 16, color: s.accent }} />
+                        </div>
+                        {s.donut ? (
+                          <DonutRing progress={s.donutValue!} size={44} strokeWidth={4} color={s.donutColor!} label={`${avgProgress}%`} labelSize={9} />
+                        ) : (
+                          <Sparkline data={s.spark} color={s.sparkColor} width={72} height={30} />
+                        )}
+                      </div>
+                      <div style={{ fontSize: 28, fontWeight: 800, color: '#1E2A32', letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 4, fontVariantNumeric: 'tabular-nums' }}>
+                        {s.display}
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#1E2A32', marginBottom: 2 }}>{s.label}</div>
+                      <div style={{ fontSize: 11, color: '#8A97A3' }}>{s.sub}</div>
+                    </div>
+                  </div>
+                );
+              })
+          }
         </div>
 
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Projects List */}
-          <Card className="lg:col-span-3 bg-slate-800/60 border-slate-700/50">
-            <div className="p-5 border-b border-slate-700/50 flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-semibold text-white">Recent Projects</h2>
-                <p className="text-xs text-slate-500 mt-0.5">{projects.length} total</p>
-              </div>
-              <Link href="/dashboard/admin/projects" className="text-xs text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1 transition-colors">
-                View all <ChevronRight className="w-3 h-3" />
-              </Link>
-            </div>
-            <div className="p-5">
-              {isLoading ? (
-                <div className="flex justify-center py-10">
-                  <div className="w-8 h-8 border-2 border-slate-600 border-t-blue-500 rounded-full animate-spin" />
+        {/* Main grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 20 }} className="lg:grid-cols-5-3">
+          <style>{`@media(min-width:1024px){.main-grid{grid-template-columns:3fr 2fr!important}}`}</style>
+          <div style={{ display: 'grid', gap: 20 }} className="main-grid">
+            {/* Recent Projects */}
+            <div style={{ ...GLASS_CARD, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px 14px', borderBottom: '1px solid rgba(221,229,236,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <h2 style={{ fontSize: 13, fontWeight: 700, color: '#1E2A32', letterSpacing: '-0.01em' }}>Recent Projects</h2>
+                  <p style={{ fontSize: 11, marginTop: 1, color: '#8A97A3' }}>{projects.length} total</p>
                 </div>
-              ) : projects.length > 0 ? (
-                <div className="space-y-3">
-                  {projects.slice(0, 5).map((project) => {
+                <Link
+                  href="/dashboard/admin/projects"
+                  style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 500, color: '#8A97A3', textDecoration: 'none', transition: 'color 0.12s' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#3A8DDE'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#8A97A3'}
+                >
+                  View all <ChevronRight style={{ width: 12, height: 12 }} />
+                </Link>
+              </div>
+              <div style={{ padding: 10 }}>
+                {isLoading ? (
+                  [0,1,2,3,4].map(i => <RowSkeleton key={i} delay={i * 60} />)
+                ) : projects.length > 0 ? (
+                  projects.slice(0, 5).map((project, pi) => {
                     const progress = projectProgress(project);
-                    const TypeIcon = project.type === 'ai_saas' ? Brain : Film;
-                    const typeColor = project.type === 'ai_saas' ? 'text-violet-400' : 'text-amber-400';
+                    const isAI = project.type === 'ai_saas';
+                    const TypeIcon = isAI ? Brain : Film;
                     return (
-                      <Link key={project._id} href={`/dashboard/admin/projects/${project._id}`}>
-                        <div className="flex items-center gap-4 p-3.5 rounded-xl hover:bg-slate-700/40 transition-colors cursor-pointer group">
-                          <div className={`w-9 h-9 ${project.type === 'ai_saas' ? 'bg-violet-500/10' : 'bg-amber-500/10'} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                            <TypeIcon className={`w-4 h-4 ${typeColor}`} />
+                      <Link key={project._id} href={`/dashboard/admin/projects/${project._id}`} style={{ textDecoration: 'none' }}>
+                        <div
+                          className="animate-fade-up"
+                          style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, cursor: 'pointer', transition: 'background 0.12s', animationDelay: `${pi * 55}ms` }}
+                          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(58,141,222,0.06)'}
+                          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+                        >
+                          <div style={{ width: 32, height: 32, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: isAI ? 'rgba(139,92,246,0.1)' : 'rgba(245,158,11,0.1)', border: `1px solid ${isAI ? 'rgba(139,92,246,0.2)' : 'rgba(245,158,11,0.2)'}` }}>
+                            <TypeIcon style={{ width: 14, height: 14, color: isAI ? '#8b5cf6' : '#f59e0b' }} />
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1.5">
-                              <h3 className="text-sm font-medium text-white truncate">{project.name}</h3>
-                              <span className={`flex-shrink-0 text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                                project.status === 'active' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-slate-700 text-slate-400'
-                              }`}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: isAI && project.roadmap?.length > 0 ? 6 : 0 }}>
+                              <span style={{ fontSize: 13, fontWeight: 500, color: '#1E2A32', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{project.name}</span>
+                              <span className={
+                                project.status === 'active'    ? 'pill-active' :
+                                project.status === 'completed' ? 'pill-completed' : 'pill-muted'
+                              } style={{ flexShrink: 0, fontSize: 10, padding: '2px 8px', borderRadius: 99, fontWeight: 600 }}>
                                 {project.status}
                               </span>
                             </div>
-                            {project.type === 'ai_saas' && project.roadmap?.length > 0 ? (
-                              <div className="flex items-center gap-2">
-                                <div className="flex-1 bg-slate-700 rounded-full h-1">
-                                  <div className="bg-blue-500 h-1 rounded-full transition-all" style={{ width: `${progress}%` }} />
+                            {isAI && project.roadmap?.length > 0 && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div style={{ flex: 1, height: 4, borderRadius: 99, background: '#E9EEF2', overflow: 'hidden' }}>
+                                  <div className="progress-bar" style={{ height: 4, borderRadius: 99, background: 'linear-gradient(90deg,#3A8DDE,#6FB2F2)', width: progressVisible ? `${progress}%` : '0%' }} />
                                 </div>
-                                <span className="text-[11px] text-slate-500 flex-shrink-0">{progress}%</span>
+                                <span style={{ fontSize: 11, color: '#8A97A3', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{progress}%</span>
                               </div>
-                            ) : (
-                              <span className="text-[11px] text-slate-600">
-                                {project.type === 'content_distribution' ? '7-day scope' : 'Roadmap not started'}
-                              </span>
                             )}
                           </div>
-                          <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-slate-400 transition-colors flex-shrink-0" />
+                          <ChevronRight style={{ width: 13, height: 13, color: '#DDE5EC', flexShrink: 0 }} />
                         </div>
                       </Link>
                     );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-10">
-                  <FolderKanban className="w-10 h-10 text-slate-700 mx-auto mb-3" />
-                  <p className="text-slate-400 text-sm">No projects yet</p>
-                </div>
-              )}
-            </div>
-          </Card>
-
-          {/* Clients */}
-          <Card className="lg:col-span-2 bg-slate-800/60 border-slate-700/50">
-            <div className="p-5 border-b border-slate-700/50 flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-semibold text-white">Active Clients</h2>
-                <p className="text-xs text-slate-500 mt-0.5">{clients.length} registered</p>
+                  })
+                ) : (
+                  <EmptyState
+                    variant="projects"
+                    title="No projects yet"
+                    description="Create your first project to get started"
+                  />
+                )}
               </div>
-              <Link href="/dashboard/admin/clients" className="text-xs text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1 transition-colors">
-                View all <ChevronRight className="w-3 h-3" />
-              </Link>
             </div>
-            <div className="p-5">
-              {isLoading ? (
-                <div className="flex justify-center py-10">
-                  <div className="w-8 h-8 border-2 border-slate-600 border-t-blue-500 rounded-full animate-spin" />
+
+            {/* Clients */}
+            <div style={{ ...GLASS_CARD, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px 14px', borderBottom: '1px solid rgba(221,229,236,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <h2 style={{ fontSize: 13, fontWeight: 700, color: '#1E2A32', letterSpacing: '-0.01em' }}>Clients</h2>
+                  <p style={{ fontSize: 11, marginTop: 1, color: '#8A97A3' }}>{clients.length} registered</p>
                 </div>
-              ) : clients.length > 0 ? (
-                <div className="space-y-2.5">
-                  {clients.slice(0, 6).map((client) => {
+                <Link
+                  href="/dashboard/admin/clients"
+                  style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 500, color: '#8A97A3', textDecoration: 'none', transition: 'color 0.12s' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#3A8DDE'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#8A97A3'}
+                >
+                  View all <ChevronRight style={{ width: 12, height: 12 }} />
+                </Link>
+              </div>
+              <div style={{ padding: 10 }}>
+                {isLoading ? (
+                  [0,1,2,3,4].map(i => <RowSkeleton key={i} delay={i * 60} />)
+                ) : clients.length > 0 ? (
+                  clients.slice(0, 7).map((client, idx) => {
                     const clientProjects = projects.filter(p => p.clientId === client._id);
+                    const isOnline = client.status === 'approved';
                     return (
-                      <div key={client._id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-700/40 transition-colors">
-                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-bold text-white">{client.name?.charAt(0).toUpperCase()}</span>
+                      <div
+                        key={client._id}
+                        className="animate-fade-up"
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 12, transition: 'background 0.12s', cursor: 'default', animationDelay: `${idx * 55}ms` }}
+                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(58,141,222,0.05)'}
+                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+                      >
+                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: AVATAR_GRADIENTS[idx % AVATAR_GRADIENTS.length] }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{client.name?.charAt(0).toUpperCase()}</span>
+                          </div>
+                          {isOnline && (
+                            <span className="presence-dot" style={{ position: 'absolute', bottom: -1, right: -1, width: 8, height: 8, borderRadius: '50%', background: '#6BCF7A', border: '1.5px solid rgba(255,255,255,0.9)' }} />
+                          )}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-white truncate">{client.name}</p>
-                          <p className="text-xs text-slate-500 truncate">
-                            {clientProjects.length} project{clientProjects.length !== 1 ? 's' : ''}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 500, color: '#1E2A32', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.name}</p>
+                          <p style={{ fontSize: 11, color: '#8A97A3' }}>{clientProjects.length} project{clientProjects.length !== 1 ? 's' : ''}</p>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <EmptyState variant="clients" title="No clients yet" description="Approved clients will appear here" />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div style={{ ...GLASS_CARD, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px 14px', borderBottom: '1px solid rgba(221,229,236,0.5)' }}>
+            <h2 style={{ fontSize: 13, fontWeight: 700, color: '#1E2A32', letterSpacing: '-0.01em' }}>Recent Activity</h2>
+            <p style={{ fontSize: 11, marginTop: 1, color: '#8A97A3' }}>Latest across all projects</p>
+          </div>
+          <div style={{ padding: 20 }}>
+            {sortedActivity.length === 0 ? (
+              <p style={{ fontSize: 13, textAlign: 'center', padding: '24px 0', color: '#8A97A3' }}>No activity yet — add projects and clients to get started.</p>
+            ) : (
+              <div style={{ position: 'relative' }}>
+                <div style={{ position: 'absolute', left: 14, top: 8, bottom: 8, width: 1, background: 'rgba(221,229,236,0.8)' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                  {sortedActivity.map((item, i) => {
+                    const Icon = item.icon;
+                    return (
+                      <div key={i} className="animate-fade-up" style={{ display: 'flex', alignItems: 'flex-start', gap: 14, position: 'relative', animationDelay: `${i * 60}ms` }}>
+                        <div style={{ width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, zIndex: 1, background: item.bg, border: '2px solid rgba(255,255,255,0.8)' }}>
+                          <Icon style={{ width: 13, height: 13, color: item.color }} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
+                          <p style={{ fontSize: 13, color: '#1E2A32' }}>{item.text}</p>
+                          <p style={{ fontSize: 11, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4, color: '#8A97A3' }}>
+                            <Clock style={{ width: 11, height: 11 }} />{item.time}
                           </p>
                         </div>
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
                       </div>
                     );
                   })}
                 </div>
-              ) : (
-                <div className="text-center py-10">
-                  <Users className="w-10 h-10 text-slate-700 mx-auto mb-3" />
-                  <p className="text-slate-400 text-sm">No clients yet</p>
-                </div>
-              )}
-            </div>
-          </Card>
-        </div>
-
-        {/* Recent Activity */}
-        <Card className="bg-slate-800/60 border-slate-700/50">
-          <div className="p-5 border-b border-slate-700/50">
-            <h2 className="text-base font-semibold text-white">Recent Activity</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Latest actions across all projects</p>
-          </div>
-          <div className="p-5">
-            {sortedActivity.length === 0 ? (
-              <p className="text-sm text-slate-500 text-center py-6">No activity yet — add projects and clients to get started.</p>
-            ) : (
-              <div className="space-y-4">
-                {sortedActivity.map((item, i) => {
-                  const Icon = item.icon;
-                  return (
-                    <div key={i} className="flex items-start gap-4">
-                      <div className={`w-8 h-8 ${item.bg} rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5`}>
-                        <Icon className={`w-4 h-4 ${item.color}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white">{item.text}</p>
-                        <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {item.time}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
             )}
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   );

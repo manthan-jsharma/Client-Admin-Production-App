@@ -1,52 +1,75 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { Sidebar } from '@/components/dashboard/sidebar';
-import { Zap } from 'lucide-react';
+import { ToastProvider } from '@/components/ui/toast-provider';
+import { CommandPaletteProvider } from '@/components/ui/command-palette';
+import { Menu } from 'lucide-react';
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function PageTransition({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  return (
+    <div key={pathname} className="page-enter flex-1 overflow-y-auto">
+      {children}
+    </div>
+  );
+}
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user, isLoading } = useAuth();
   const router = useRouter();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoading) {
-      if (!isAuthenticated) {
-        router.push('/login');
-      } else if (user && user.role !== 'admin') {
-        router.push('/dashboard/client');
-      }
+      if (!isAuthenticated) router.push('/login');
+      else if (user && user.role !== 'admin') router.push('/dashboard/client');
     }
   }, [isAuthenticated, user, isLoading, router]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
-            <Zap className="w-5 h-5 text-white" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#E9EEF2' }}>
+        <div className="flex flex-col items-center gap-5">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden"
+            style={{ background: 'rgba(58,141,222,0.12)', border: '1px solid rgba(58,141,222,0.2)' }}
+          >
+            <img src="/icon.svg" alt="AI APP LABS" className="w-7 h-7 object-contain" />
           </div>
-          <div className="w-6 h-6 border-2 border-slate-700 border-t-blue-500 rounded-full animate-spin" />
+          <div className="w-5 h-5 rounded-full border-2 animate-spin"
+            style={{ borderColor: 'rgba(58,141,222,0.2)', borderTopColor: '#3A8DDE' }}
+          />
         </div>
       </div>
     );
   }
 
-  if (!isAuthenticated || !user || user.role !== 'admin') {
-    return null;
-  }
+  if (!isAuthenticated || !user || user.role !== 'admin') return null;
 
   return (
-    <div className="flex h-screen bg-slate-950">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto bg-slate-950">
-        {children}
-      </main>
-    </div>
+    <ToastProvider>
+      <CommandPaletteProvider role="admin">
+        <div className="flex h-screen" style={{ background: '#E9EEF2' }}>
+          <Sidebar mobileOpen={mobileNavOpen} onMobileClose={() => setMobileNavOpen(false)} />
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            {/* Mobile top bar */}
+            <div className="lg:hidden flex items-center gap-3 px-4 h-14 flex-shrink-0" style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(221,229,236,0.7)' }}>
+              <button onClick={() => setMobileNavOpen(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 10, background: 'rgba(58,141,222,0.08)', border: '1px solid rgba(58,141,222,0.15)', cursor: 'pointer' }}>
+                <Menu size={18} color="#3A8DDE" />
+              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <img src="/icon.svg" alt="" style={{ width: 22, height: 22 }} />
+                <span style={{ fontSize: 13, fontWeight: 800, color: '#1E2A32', letterSpacing: '-0.02em' }}>AI APP LABS</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#3A8DDE', background: 'rgba(58,141,222,0.1)', border: '1px solid rgba(58,141,222,0.2)', borderRadius: 99, padding: '2px 8px' }}>Admin</span>
+              </div>
+            </div>
+            <PageTransition>{children}</PageTransition>
+          </div>
+        </div>
+      </CommandPaletteProvider>
+    </ToastProvider>
   );
 }

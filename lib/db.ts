@@ -724,16 +724,26 @@ export async function getAllProjects(): Promise<Project[]> {
 
 // ─── Chat Operations ──────────────────────────────────────────────────────────
 
-export async function getProjectMessages(projectId: string, limit: number = 50): Promise<ChatMessage[]> {
-  const { data, error } = await supabase
+export async function getProjectMessages(
+  projectId: string,
+  limit: number = 50,
+  before?: Date
+): Promise<ChatMessage[]> {
+  let query = supabase
     .from('chat_messages')
     .select('*')
     .eq('project_id', projectId)
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
     .limit(limit);
 
+  if (before) {
+    query = query.lt('created_at', before.toISOString());
+  }
+
+  const { data, error } = await query;
   if (error || !data) return [];
-  return (data as Record<string, unknown>[]).map(mapMessage);
+  // Return oldest-first so UI renders top→bottom correctly
+  return (data as Record<string, unknown>[]).map(mapMessage).reverse();
 }
 
 export async function getAllMessages(): Promise<ChatMessage[]> {

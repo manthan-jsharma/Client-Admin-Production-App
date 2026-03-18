@@ -4,9 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Zap, Mail, Lock, User, Phone, Building2, Briefcase, AlertCircle, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, User, Phone, Building2, Briefcase, AlertCircle, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -14,13 +12,8 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    name: '',
-    businessName: '',
-    phone: '',
-    company: ''
+    email: '', password: '', confirmPassword: '',
+    name: '', businessName: '', phone: '', company: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,28 +26,14 @@ export default function SignupPage() {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
-
     try {
-      if (!formData.email || !formData.password || !formData.name || !formData.businessName) {
+      if (!formData.email || !formData.password || !formData.name || !formData.businessName)
         throw new Error('Please fill in all required fields');
-      }
-      if (formData.password !== formData.confirmPassword) {
+      if (formData.password !== formData.confirmPassword)
         throw new Error('Passwords do not match');
-      }
-      if (formData.password.length < 8) {
+      if (formData.password.length < 8)
         throw new Error('Password must be at least 8 characters');
-      }
-
-      await signup(
-        formData.email,
-        formData.password,
-        formData.name,
-        formData.businessName,
-        formData.phone || undefined,
-        formData.company || undefined
-      );
-
-      // After signup, always redirect to pending page (account needs approval)
+      await signup(formData.email, formData.password, formData.name, formData.businessName, formData.phone || undefined, formData.company || undefined);
       router.push('/pending');
     } catch (err: any) {
       setError(err.message || 'Signup failed');
@@ -63,176 +42,103 @@ export default function SignupPage() {
     }
   };
 
+  const inputStyle = {
+    background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC', color: '#1E2A32',
+  };
+
+  const fields = [
+    { label: 'Full name', name: 'name', type: 'text', placeholder: 'John Doe', icon: User, required: true },
+    { label: 'Business name', name: 'businessName', type: 'text', placeholder: 'Acme Inc.', icon: Briefcase, required: true },
+    { label: 'Email address', name: 'email', type: 'email', placeholder: 'you@example.com', icon: Mail, required: true, fullWidth: true },
+    { label: 'Company', name: 'company', type: 'text', placeholder: 'Company name', icon: Building2 },
+    { label: 'Phone', name: 'phone', type: 'tel', placeholder: '+1 555 0000', icon: Phone },
+    { label: 'Password', name: 'password', type: 'password', placeholder: 'Min. 8 characters', icon: Lock, required: true, hint: 'Must include uppercase, lowercase, and a number' },
+    { label: 'Confirm password', name: 'confirmPassword', type: 'password', placeholder: 'Re-enter password', icon: Lock, required: true },
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
+    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: '#E9EEF2' }}>
       <div className="w-full max-w-lg">
         {/* Logo */}
         <div className="flex items-center gap-2.5 mb-8">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden">
-            <img src="/icon.svg" alt="AI APP LABS" className="w-9 h-9 object-contain" />
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden" style={{ background: '#eff8ff', border: '1px solid #c8dff0' }}>
+            <img src="/icon.svg" alt="AI APP LABS" className="w-6 h-6 object-contain" />
           </div>
-          <span className="text-lg font-bold text-white">AI APP LABS</span>
+          <span className="text-lg font-bold" style={{ color: '#1E2A32', letterSpacing: '-0.02em' }}>AI APP LABS</span>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl shadow-black/40">
-          <div className="mb-7">
-            <h1 className="text-2xl font-bold text-white mb-1.5">Create your account</h1>
-            <p className="text-slate-400 text-sm">
+        <div
+          className="rounded-2xl p-8 animate-fade-up"
+          style={{ background: 'rgba(255,255,255,0.72)', backdropFilter: 'blur(20px) saturate(1.6)', WebkitBackdropFilter: 'blur(20px) saturate(1.6)', border: '1px solid rgba(255,255,255,0.55)', borderRadius: 16, boxShadow: '0 4px 24px rgba(30,40,60,0.08), inset 0 1px 0 rgba(255,255,255,0.85)' }}
+        >
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold mb-1.5" style={{ color: '#1E2A32', letterSpacing: '-0.03em' }}>Create your account</h1>
+            <p className="text-sm" style={{ color: '#5F6B76' }}>
               Join AI APP LABS — your account will be reviewed by an admin before activation.
             </p>
           </div>
 
           {/* Approval notice */}
-          <div className="mb-5 flex items-start gap-3 p-3.5 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-            <CheckCircle2 className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
-            <p className="text-blue-300 text-xs leading-relaxed">
+          <div className="mb-5 flex items-start gap-3 p-3.5 rounded-xl" style={{ background: '#eff8ff', border: '1px solid #c8dff0' }}>
+            <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#3A8DDE' }} />
+            <p className="text-xs leading-relaxed" style={{ color: '#334155' }}>
               After signing up, your account will be <strong>pending admin approval</strong>. You&apos;ll be notified once access is granted.
             </p>
           </div>
 
           {error && (
-            <div className="mb-5 flex items-start gap-3 p-3.5 bg-red-500/10 border border-red-500/20 rounded-xl">
-              <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
-              <p className="text-red-400 text-sm">{error}</p>
+            <div className="mb-5 flex items-start gap-3 p-3.5 rounded-xl animate-fade-up" style={{ background: '#fff1f2', border: '1px solid #fecaca' }}>
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#ef4444' }} />
+              <p className="text-sm" style={{ color: '#ef4444' }}>{error}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">Full name <span className="text-red-400">*</span></label>
-                <div className="relative">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <Input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="John Doe"
-                    className="pl-10 bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 h-10 rounded-xl"
-                    required
-                  />
+              {fields.map(({ label, name, type, placeholder, icon: Icon, required, hint, fullWidth }) => (
+                <div key={name} className={`space-y-1.5 ${fullWidth ? 'sm:col-span-2' : ''}`}>
+                  <label className="text-sm font-semibold" style={{ color: '#334155' }}>
+                    {label} {required && <span style={{ color: '#ef4444' }}>*</span>}
+                  </label>
+                  <div className="relative">
+                    <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: '#8A97A3' }} />
+                    <input
+                      type={type}
+                      name={name}
+                      value={formData[name as keyof typeof formData]}
+                      onChange={handleChange}
+                      placeholder={placeholder}
+                      required={required}
+                      className="w-full pl-10 pr-4 h-10 rounded-xl text-sm outline-none transition-all"
+                      style={inputStyle}
+                      onFocus={e => (e.target.style.borderColor = '#3A8DDE')}
+                      onBlur={e => (e.target.style.borderColor = '#DDE5EC')}
+                    />
+                  </div>
+                  {hint && <p className="text-xs" style={{ color: '#8A97A3' }}>{hint}</p>}
                 </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">Business name <span className="text-red-400">*</span></label>
-                <div className="relative">
-                  <Briefcase className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <Input
-                    type="text"
-                    name="businessName"
-                    value={formData.businessName}
-                    onChange={handleChange}
-                    placeholder="Acme Inc."
-                    className="pl-10 bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 h-10 rounded-xl"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="sm:col-span-2 space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">Email address <span className="text-red-400">*</span></label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <Input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="you@example.com"
-                    className="pl-10 bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 h-10 rounded-xl"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">Company</label>
-                <div className="relative">
-                  <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <Input
-                    type="text"
-                    name="company"
-                    value={formData.company}
-                    onChange={handleChange}
-                    placeholder="Company name"
-                    className="pl-10 bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 h-10 rounded-xl"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">Phone</label>
-                <div className="relative">
-                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <Input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    placeholder="+1 555 0000"
-                    className="pl-10 bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 h-10 rounded-xl"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">Password <span className="text-red-400">*</span></label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <Input
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="Min. 8 characters"
-                    className="pl-10 bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 h-10 rounded-xl"
-                    required
-                  />
-                </div>
-                <p className="text-xs text-slate-600">Must include uppercase, lowercase, and a number</p>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">Confirm password <span className="text-red-400">*</span></label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <Input
-                    type="password"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    placeholder="Re-enter password"
-                    className="pl-10 bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 h-10 rounded-xl"
-                    required
-                  />
-                </div>
-              </div>
+              ))}
             </div>
 
-            <Button
+            <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-11 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 mt-2"
+              className="btn-primary w-full h-12 rounded-xl text-sm flex items-center justify-center gap-2 active:scale-95 mt-2"
             >
               {isLoading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Creating account...
-                </>
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Creating account…</>
               ) : (
-                <>
-                  Create account
-                  <ArrowRight className="w-4 h-4" />
-                </>
+                <>Create account <ArrowRight className="w-4 h-4" /></>
               )}
-            </Button>
+            </button>
           </form>
 
-          <p className="text-center text-slate-500 text-sm mt-6">
+          <p className="text-center text-sm mt-6" style={{ color: '#8A97A3' }}>
             Already have an account?{' '}
-            <Link href="/login" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
+            <Link href="/login" className="font-semibold transition-colors" style={{ color: '#3A8DDE' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#2F6FB2'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#3A8DDE'}
+            >
               Sign in
             </Link>
           </p>

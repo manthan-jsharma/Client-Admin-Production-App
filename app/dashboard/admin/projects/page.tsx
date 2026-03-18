@@ -2,26 +2,36 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Project, User } from '@/lib/types';
 import { FileUploadField } from '@/components/ui/file-upload-field';
 import {
   FolderKanban, Plus, X, Calendar, User2, Search,
-  ExternalLink, Brain, Film, DollarSign, ChevronRight,
+  Brain, Film, DollarSign, ChevronRight, AlertCircle,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 
-const TYPE_STYLES = {
-  ai_saas: { label: 'AI SaaS', bg: 'bg-violet-500/15', text: 'text-violet-400', icon: Brain },
-  content_distribution: { label: 'Content Distribution', bg: 'bg-amber-500/15', text: 'text-amber-400', icon: Film },
+const CARD = {
+  background: 'rgba(255,255,255,0.72)',
+  backdropFilter: 'blur(20px) saturate(1.6)',
+  WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
+  border: '1px solid rgba(255,255,255,0.55)',
+  boxShadow: '0 4px 24px rgba(58,141,222,0.08), 0 1px 4px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.85)',
+  borderRadius: '18px',
 };
 
-const STATUS_STYLES: Record<string, string> = {
-  active: 'bg-emerald-500/15 text-emerald-400',
-  completed: 'bg-blue-500/15 text-blue-400',
-  planning: 'bg-slate-600/50 text-slate-400',
-  'on-hold': 'bg-amber-500/15 text-amber-400',
+const TYPE_STYLES = {
+  ai_saas: { label: 'AI SaaS', color: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe', accentFrom: '#8b5cf6', accentTo: '#3A8DDE', icon: Brain },
+  content_distribution: { label: 'Content Dist.', color: '#f59e0b', bg: '#fffbeb', border: '#fde68a', accentFrom: '#f59e0b', accentTo: '#f97316', icon: Film },
+};
+
+const STATUS_STYLES: Record<string, { color: string; bg: string; border: string }> = {
+  active:    { color: '#6BCF7A', bg: 'rgba(107,207,122,0.1)', border: '#a7f3d0' },
+  completed: { color: '#3A8DDE', bg: '#eff8ff', border: '#c8dff0' },
+  planning:  { color: '#8A97A3', bg: 'rgba(58,141,222,0.06)', border: '#DDE5EC' },
+  'on-hold': { color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' },
 };
 
 export default function AdminProjectsPage() {
@@ -36,16 +46,10 @@ export default function AdminProjectsPage() {
   const [formError, setFormError] = useState('');
 
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    clientId: '',
+    name: '', description: '', clientId: '',
     type: 'ai_saas' as 'ai_saas' | 'content_distribution',
-    totalPrice: '',
-    contractPDF: '',
-    scopePDF: '',
-    startDate: '',
-    endDate: '',
-    status: 'planning',
+    totalPrice: '', contractPDF: '', scopePDF: '',
+    startDate: '', endDate: '', status: 'planning',
   });
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : '';
@@ -60,9 +64,7 @@ export default function AdminProjectsPage() {
         const projResult = await projRes.json();
         const clientResult = await clientRes.json();
         if (projResult.success) setProjects(projResult.data);
-        if (clientResult.success) {
-          setClients(clientResult.data.filter((c: User) => c.status === 'approved'));
-        }
+        if (clientResult.success) setClients(clientResult.data.filter((c: User) => c.status === 'approved'));
       } catch (error) {
         console.error('Failed to fetch data:', error);
       } finally {
@@ -79,10 +81,7 @@ export default function AdminProjectsPage() {
     try {
       const res = await fetch('/api/projects', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           ...formData,
           totalPrice: formData.totalPrice ? Number(formData.totalPrice) : undefined,
@@ -107,71 +106,75 @@ export default function AdminProjectsPage() {
   };
 
   const filtered = projects.filter(p => {
-    const matchesSearch =
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = typeFilter === 'all' || p.type === typeFilter;
     return matchesSearch && matchesType;
   });
 
+  const inputStyle = { background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC', color: '#334155', borderRadius: '12px' };
+
   return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <div className="px-8 pt-8 pb-6 border-b border-slate-800">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Projects</h1>
-            <p className="text-sm text-slate-500 mt-1">{projects.length} total projects</p>
-          </div>
-          <Button
+    <div className="min-h-screen animate-fade-up">
+      <PageHeader
+        title="Projects"
+        subtitle={`${projects.length} total projects`}
+        breadcrumbs={[{ label: 'Admin', href: '/dashboard/admin' }, { label: 'Projects' }]}
+        heroStrip
+        actions={
+          <button
             onClick={() => setShowCreateForm(!showCreateForm)}
-            className={`flex items-center gap-2 font-medium rounded-xl h-10 px-4 transition-all ${
-              showCreateForm
-                ? 'bg-slate-700 hover:bg-slate-600 text-white'
-                : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'
-            }`}
+            className="flex items-center gap-2 text-sm font-semibold rounded-xl h-9 px-4 transition-all duration-150 active:scale-95"
+            style={showCreateForm
+              ? { background: 'rgba(58,141,222,0.06)', color: '#334155', border: '1px solid #DDE5EC' }
+              : { background: '#3A8DDE', color: 'white' }}
           >
             {showCreateForm ? <><X className="w-4 h-4" /> Cancel</> : <><Plus className="w-4 h-4" /> New Project</>}
-          </Button>
-        </div>
-      </div>
+          </button>
+        }
+      />
 
-      <div className="p-8 space-y-6">
+      <div className="p-8 space-y-5">
         {/* Create Form */}
         {showCreateForm && (
-          <Card className="bg-slate-800/60 border-slate-700/50 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-700/50 bg-slate-700/20">
-              <h2 className="text-base font-semibold text-white">Create New Project</h2>
+          <div className="overflow-hidden" style={CARD}>
+            <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #f1f5f9', background: '#fafcff' }}>
+              <div>
+                <h2 className="text-sm font-semibold" style={{ color: '#1E2A32' }}>New Project</h2>
+                <p className="text-xs mt-0.5" style={{ color: '#8A97A3' }}>Fill in the details below to create a project</p>
+              </div>
             </div>
             <form onSubmit={handleCreate} className="p-6 space-y-5">
               {formError && (
-                <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5">{formError}</p>
+                <div className="flex items-center gap-2.5 text-sm rounded-xl px-4 py-3" style={{ color: '#ef4444', background: '#fff1f2', border: '1px solid #fecaca' }}>
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  {formError}
+                </div>
               )}
 
-              {/* Division Selector */}
+              {/* Type selector */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">Project Division <span className="text-red-400">*</span></label>
+                <label className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#8A97A3' }}>Project Type <span style={{ color: '#ef4444' }}>*</span></label>
                 <div className="grid grid-cols-2 gap-3">
                   {(['ai_saas', 'content_distribution'] as const).map(t => {
                     const ts = TYPE_STYLES[t];
                     const Icon = ts.icon;
+                    const selected = formData.type === t;
                     return (
                       <button
                         key={t}
                         type="button"
                         onClick={() => setFormData(f => ({ ...f, type: t }))}
-                        className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${
-                          formData.type === t
-                            ? 'border-blue-500 bg-blue-500/10'
-                            : 'border-slate-700 bg-slate-700/30 hover:border-slate-600'
-                        }`}
+                        className="flex items-center gap-3 p-4 rounded-xl text-left transition-all"
+                        style={selected
+                          ? { border: `1px solid ${ts.border}`, background: ts.bg }
+                          : { border: '1px solid #DDE5EC', background: '#ffffff' }}
                       >
-                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${ts.bg}`}>
-                          <Icon className={`w-4.5 h-4.5 ${ts.text}`} />
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: ts.bg }}>
+                          <Icon className="w-4 h-4" style={{ color: ts.color }} />
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-white">{ts.label}</p>
-                          <p className="text-[11px] text-slate-500">
+                          <p className="text-sm font-semibold" style={{ color: '#1E2A32' }}>{ts.label}</p>
+                          <p className="text-[11px]" style={{ color: '#8A97A3' }}>
                             {t === 'ai_saas' ? '14-day roadmap + deliveries' : '7-day scope + AI clone'}
                           </p>
                         </div>
@@ -181,27 +184,29 @@ export default function AdminProjectsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-300">Project Name <span className="text-red-400">*</span></label>
+                  <label className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#8A97A3' }}>Project Name <span style={{ color: '#ef4444' }}>*</span></label>
                   <Input
                     type="text"
                     value={formData.name}
                     onChange={e => setFormData(f => ({ ...f, name: e.target.value }))}
                     placeholder="e.g. SaaS Dashboard Build"
-                    className="bg-slate-700/80 border-slate-600 text-white placeholder-slate-500 focus:border-blue-500 rounded-xl h-10"
+                    className="rounded-xl h-10 text-sm"
+                    style={inputStyle}
                     required
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-300">Client <span className="text-red-400">*</span></label>
+                  <label className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#8A97A3' }}>Client <span style={{ color: '#ef4444' }}>*</span></label>
                   <select
                     value={formData.clientId}
                     onChange={e => setFormData(f => ({ ...f, clientId: e.target.value }))}
-                    className="w-full h-10 px-3 bg-slate-700/80 border border-slate-600 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-sm"
+                    className="w-full h-10 px-3 rounded-xl focus:outline-none text-sm"
+                    style={inputStyle}
                     required
                   >
-                    <option value="">Select a client...</option>
+                    <option value="">Select a client…</option>
                     {clients.map(c => (
                       <option key={c._id} value={c._id}>{c.name} ({c.email})</option>
                     ))}
@@ -210,220 +215,222 @@ export default function AdminProjectsPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">Description <span className="text-red-400">*</span></label>
+                <label className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#8A97A3' }}>Description <span style={{ color: '#ef4444' }}>*</span></label>
                 <textarea
                   value={formData.description}
                   onChange={e => setFormData(f => ({ ...f, description: e.target.value }))}
-                  placeholder="Describe the project scope and goals..."
+                  placeholder="Describe the project scope and goals…"
                   rows={3}
-                  className="w-full px-4 py-2.5 bg-slate-700/80 border border-slate-600 text-white rounded-xl placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-sm resize-none"
+                  className="w-full px-4 py-2.5 rounded-xl text-sm resize-none focus:outline-none"
+                  style={inputStyle}
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-300">Total Price (USD)</label>
+                  <label className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#8A97A3' }}>Total Price (USD)</label>
                   <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: '#8A97A3' }} />
                     <Input
                       type="number"
                       value={formData.totalPrice}
                       onChange={e => setFormData(f => ({ ...f, totalPrice: e.target.value }))}
                       placeholder="0"
-                      className="pl-8 bg-slate-700/80 border-slate-600 text-white placeholder-slate-500 focus:border-blue-500 rounded-xl h-10"
+                      className="pl-8 rounded-xl h-10 text-sm"
+                      style={inputStyle}
                     />
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-300">Start Date <span className="text-red-400">*</span></label>
+                  <label className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#8A97A3' }}>Start Date <span style={{ color: '#ef4444' }}>*</span></label>
                   <Input
                     type="date"
                     value={formData.startDate}
                     onChange={e => setFormData(f => ({ ...f, startDate: e.target.value }))}
-                    className="bg-slate-700/80 border-slate-600 text-white focus:border-blue-500 rounded-xl h-10"
+                    className="rounded-xl h-10 text-sm"
+                    style={inputStyle}
                     required
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-300">End Date <span className="text-red-400">*</span></label>
+                  <label className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#8A97A3' }}>End Date <span style={{ color: '#ef4444' }}>*</span></label>
                   <Input
                     type="date"
                     value={formData.endDate}
                     onChange={e => setFormData(f => ({ ...f, endDate: e.target.value }))}
-                    className="bg-slate-700/80 border-slate-600 text-white focus:border-blue-500 rounded-xl h-10"
+                    className="rounded-xl h-10 text-sm"
+                    style={inputStyle}
                     required
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FileUploadField
                   label="Contract PDF"
                   value={formData.contractPDF}
                   onChange={url => setFormData(f => ({ ...f, contractPDF: url }))}
-                  folder="contracts"
-                  accept=".pdf,application/pdf"
-                  maxSizeMB={20}
-                  hint="PDF"
+                  folder="contracts" accept=".pdf,application/pdf" maxSizeMB={20} hint="PDF"
                 />
                 <FileUploadField
                   label="Scope PDF"
                   value={formData.scopePDF}
                   onChange={url => setFormData(f => ({ ...f, scopePDF: url }))}
-                  folder="contracts"
-                  accept=".pdf,application/pdf"
-                  maxSizeMB={20}
-                  hint="PDF"
+                  folder="contracts" accept=".pdf,application/pdf" maxSizeMB={20} hint="PDF"
                 />
               </div>
 
-              <div className="flex gap-3 pt-1">
-                <Button
+              <div className="flex gap-3 pt-2">
+                <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl px-6 h-10 shadow-lg shadow-blue-600/20 disabled:opacity-60"
+                  className="flex items-center gap-2 text-sm font-semibold rounded-xl px-6 h-10 transition-all duration-150 active:scale-95 disabled:opacity-50"
+                  style={{ background: '#3A8DDE', color: 'white' }}
                 >
-                  {isSubmitting ? 'Creating...' : 'Create Project'}
-                </Button>
-                <Button
+                  {isSubmitting ? (
+                    <><div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'white' }} /> Creating…</>
+                  ) : 'Create Project'}
+                </button>
+                <button
                   type="button"
                   onClick={() => setShowCreateForm(false)}
-                  className="bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl px-6 h-10"
+                  className="text-sm font-medium rounded-xl px-6 h-10 transition-all duration-150 active:scale-95"
+                  style={{ background: 'rgba(58,141,222,0.06)', color: '#334155', border: '1px solid #DDE5EC' }}
                 >
                   Cancel
-                </Button>
+                </button>
               </div>
             </form>
-          </Card>
+          </div>
         )}
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: '#8A97A3' }} />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search projects..."
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-800/60 border border-slate-700/50 text-white rounded-xl placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-sm transition-all"
+              placeholder="Search projects…"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none transition-all"
+              style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC', color: '#334155' }}
             />
           </div>
-          <div className="flex items-center gap-1 p-1 bg-slate-800/60 border border-slate-700/50 rounded-xl">
+          <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC' }}>
             {(['all', 'ai_saas', 'content_distribution'] as const).map(t => (
               <button
                 key={t}
                 onClick={() => setTypeFilter(t)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all capitalize ${
-                  typeFilter === t ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-                }`}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all"
+                style={typeFilter === t
+                  ? { background: '#ffffff', color: '#1E2A32', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }
+                  : { color: '#8A97A3' }}
               >
-                {t === 'all' ? 'All' : t === 'ai_saas' ? 'AI SaaS' : 'Content Dist.'}
+                {t === 'all' ? 'All' : t === 'ai_saas' ? 'AI SaaS' : 'Content'}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Projects Grid */}
+        {/* Grid */}
         {isLoading ? (
           <div className="flex justify-center items-center h-40">
-            <div className="w-8 h-8 border-2 border-slate-600 border-t-blue-500 rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: 'rgba(58,141,222,0.2)', borderTopColor: '#3A8DDE' }} />
           </div>
         ) : filtered.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map(project => {
               const ts = TYPE_STYLES[project.type] ?? TYPE_STYLES.ai_saas;
               const Icon = ts.icon;
-              const clientName = clients.find(c => c._id === project.clientId)?.name ?? project.clientId;
+              const statusStyle = STATUS_STYLES[project.status] ?? STATUS_STYLES.planning;
+              const clientName = clients.find(c => c._id === project.clientId)?.name ?? '—';
               const completedDays = project.roadmap?.filter(r => r.completed).length ?? 0;
               const totalDays = project.roadmap?.length ?? 0;
               const progress = totalDays > 0 ? Math.round((completedDays / totalDays) * 100) : 0;
 
               return (
-                <Card
+                <div
                   key={project._id}
-                  className="bg-slate-800/60 border-slate-700/50 hover:border-slate-600 transition-all duration-200 group cursor-pointer"
+                  className="relative overflow-hidden transition-all duration-200 hover:-translate-y-0.5 cursor-pointer group"
+                  style={CARD}
                   onClick={() => router.push(`/dashboard/admin/projects/${project._id}`)}
                 >
+                  <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: `linear-gradient(90deg, ${ts.accentFrom}, ${ts.accentTo})` }} />
                   <div className="p-5">
                     <div className="flex items-start justify-between mb-4">
-                      <div className={`w-10 h-10 ${ts.bg} rounded-xl flex items-center justify-center`}>
-                        <Icon className={`w-5 h-5 ${ts.text}`} />
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: ts.bg }}>
+                        <Icon className="w-4 h-4" style={{ color: ts.color }} />
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`text-[11px] px-2.5 py-1 rounded-full font-medium ${ts.bg} ${ts.text}`}>
+                        <span
+                          className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                          style={{ background: ts.bg, color: ts.color, border: `1px solid ${ts.border}` }}
+                        >
                           {ts.label}
                         </span>
-                        <span className={`text-[11px] px-2.5 py-1 rounded-full font-medium ${STATUS_STYLES[project.status] ?? 'bg-slate-700 text-slate-400'}`}>
+                        <span
+                          className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                          style={{ background: statusStyle.bg, color: statusStyle.color, border: `1px solid ${statusStyle.border}` }}
+                        >
                           {project.status}
                         </span>
                       </div>
                     </div>
 
-                    <h3 className="text-sm font-semibold text-white mb-1.5">{project.name}</h3>
-                    <p className="text-xs text-slate-500 line-clamp-2 mb-4">{project.description}</p>
+                    <h3 className="text-sm font-semibold mb-1 leading-snug" style={{ color: '#1E2A32' }}>{project.name}</h3>
+                    <p className="text-xs line-clamp-2 mb-4 leading-relaxed" style={{ color: '#8A97A3' }}>{project.description}</p>
 
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <User2 className="w-3.5 h-3.5 text-slate-600" />
-                        <span className="text-slate-300">{clientName}</span>
+                    <div className="space-y-1.5 mb-4">
+                      <div className="flex items-center gap-2 text-xs">
+                        <User2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#8A97A3' }} />
+                        <span style={{ color: '#334155' }}>{clientName}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <Calendar className="w-3.5 h-3.5 text-slate-600" />
-                        <span>{new Date(project.startDate).toLocaleDateString()} — {new Date(project.endDate).toLocaleDateString()}</span>
+                      <div className="flex items-center gap-2 text-xs">
+                        <Calendar className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#8A97A3' }} />
+                        <span style={{ color: '#8A97A3' }}>
+                          {new Date(project.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} — {new Date(project.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
                       </div>
                       {project.totalPrice && (
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                          <DollarSign className="w-3.5 h-3.5 text-slate-600" />
-                          <span className="text-slate-300">${project.totalPrice.toLocaleString()}</span>
+                        <div className="flex items-center gap-2 text-xs">
+                          <DollarSign className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#8A97A3' }} />
+                          <span className="font-medium" style={{ color: '#334155' }}>${project.totalPrice.toLocaleString()}</span>
                         </div>
                       )}
                     </div>
 
                     {project.type === 'ai_saas' && totalDays > 0 && (
-                      <div className="mb-4">
-                        <div className="flex justify-between mb-1.5">
-                          <span className="text-xs text-slate-500">Roadmap Progress</span>
-                          <span className="text-xs font-medium text-blue-400">{progress}%</span>
+                      <div className="mb-4 space-y-1.5">
+                        <div className="flex justify-between">
+                          <span className="text-[11px]" style={{ color: '#8A97A3' }}>Roadmap</span>
+                          <span className="text-[11px] font-semibold tabular-nums" style={{ color: '#1E2A32' }}>{progress}%</span>
                         </div>
-                        <div className="w-full bg-slate-700 rounded-full h-1.5">
+                        <div className="w-full rounded-full h-1.5 overflow-hidden" style={{ background: '#f1f5f9' }}>
                           <div
-                            className="bg-gradient-to-r from-blue-600 to-blue-400 h-1.5 rounded-full transition-all"
-                            style={{ width: `${progress}%` }}
+                            className="h-1.5 rounded-full transition-all"
+                            style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #3A8DDE, #52b7f4)' }}
                           />
                         </div>
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-700/50">
-                      <span className="text-xs text-slate-500">
-                        {project.type === 'ai_saas'
-                          ? `${completedDays}/${totalDays} days complete`
-                          : '7-day scope'
-                        }
+                    <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid #f1f5f9' }}>
+                      <span className="text-[11px]" style={{ color: '#8A97A3' }}>
+                        {project.type === 'ai_saas' ? `${completedDays}/${totalDays} days` : '7-day scope'}
                       </span>
-                      <span className="flex items-center gap-1 text-xs text-blue-400 font-medium group-hover:gap-2 transition-all">
-                        Manage <ChevronRight className="w-3.5 h-3.5" />
+                      <span className="flex items-center gap-1 text-xs font-medium transition-colors" style={{ color: '#8A97A3' }}>
+                        Manage <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                       </span>
                     </div>
                   </div>
-                </Card>
+                </div>
               );
             })}
           </div>
         ) : (
-          <Card className="bg-slate-800/60 border-slate-700/50 p-14 text-center">
-            <div className="w-14 h-14 bg-slate-700/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <FolderKanban className="w-7 h-7 text-slate-600" />
-            </div>
-            <p className="text-slate-400 font-medium mb-1.5">
-              {searchQuery ? 'No projects match your search' : 'No projects yet'}
-            </p>
-            <p className="text-slate-600 text-sm">
-              {searchQuery ? 'Try a different search term' : 'Click "New Project" to get started'}
-            </p>
-          </Card>
+          <EmptyState variant="projects" />
         )}
       </div>
     </div>

@@ -1,9 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ShieldCheck, Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, AlertCircle, ArrowRight, Users, ClipboardList, Settings2 } from 'lucide-react';
 
 export default function AdminLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -15,20 +13,15 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
-
     try {
       if (!email || !password) throw new Error('Please enter email and password');
-
       const res = await fetch('/api/auth/admin-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-
       const result = await res.json();
       if (!result.success || !result.data) throw new Error(result.error || 'Login failed');
-
-      // Store session — full reload so auth context re-initialises from localStorage
       localStorage.setItem('auth_token', result.data.token);
       localStorage.setItem('auth_user', JSON.stringify(result.data.user));
       window.location.href = '/dashboard/admin';
@@ -38,134 +31,145 @@ export default function AdminLoginPage() {
     }
   };
 
+  const features = [
+    { icon: Users,         text: 'Manage clients & project workflows' },
+    { icon: ClipboardList, text: 'Review deliveries and approvals' },
+    { icon: Settings2,     text: 'Full platform configuration access' },
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-950 flex">
-      {/* Left panel — Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 p-12 flex-col justify-between relative overflow-hidden border-r border-slate-800/50">
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-violet-500 rounded-full filter blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-slate-500 rounded-full filter blur-3xl" />
-        </div>
+    <div className="min-h-screen flex" style={{ background: '#E9EEF2' }}>
+      {/* Left panel */}
+      <div
+        className="hidden lg:flex lg:w-1/2 p-12 flex-col justify-between relative overflow-hidden"
+        style={{ background: 'linear-gradient(145deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)' }}
+      >
+        <div className="absolute top-0 right-0 w-72 h-72 rounded-full opacity-10" style={{ background: '#3A8DDE', transform: 'translate(30%, -30%)' }} />
+        <div className="absolute bottom-0 left-0 w-56 h-56 rounded-full opacity-10" style={{ background: '#8b5cf6', transform: 'translate(-30%, 30%)' }} />
 
         <div className="relative flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden">
-            <img src="/icon.svg" alt="AI APP LABS" className="w-10 h-10 object-contain" />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+            <img src="/icon.svg" alt="AI APP LABS" className="w-7 h-7 object-contain" />
           </div>
-          <div>
-            <span className="text-xl font-bold text-white">AI APP LABS</span>
-            <span className="ml-2 text-xs font-medium text-violet-400 bg-violet-400/10 px-2 py-0.5 rounded-full">Admin</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xl font-bold text-white" style={{ letterSpacing: '-0.02em' }}>AI APP LABS</span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(139,92,246,0.2)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.3)' }}>
+              Admin
+            </span>
           </div>
         </div>
 
-        <div className="relative space-y-6">
+        <div className="relative space-y-8">
           <div>
-            <h2 className="text-4xl font-bold text-white leading-tight mb-4">
-              Admin portal
-            </h2>
-            <p className="text-slate-500 text-base leading-relaxed">
+            <h2 className="text-4xl font-bold text-white leading-tight mb-4" style={{ letterSpacing: '-0.03em' }}>Admin portal</h2>
+            <p className="text-base leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
               Restricted access. Only authorised administrators may sign in here.
             </p>
           </div>
-          <div className="space-y-3">
-            {[
-              'Manage clients & project workflows',
-              'Review deliveries and approvals',
-              'Full platform configuration access',
-            ].map((f) => (
-              <div key={f} className="flex items-center gap-3">
-                <div className="w-5 h-5 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center flex-shrink-0">
-                  <div className="w-1.5 h-1.5 rounded-full bg-violet-400" />
+          <div className="space-y-3.5">
+            {features.map(({ icon: Icon, text }) => (
+              <div key={text} className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.07)' }}>
+                  <Icon className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.6)' }} />
                 </div>
-                <span className="text-slate-400 text-sm">{f}</span>
+                <span className="text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>{text}</span>
               </div>
             ))}
           </div>
         </div>
 
         <div className="relative">
-          <p className="text-slate-700 text-sm">© 2026 AI APP LABS. All rights reserved.</p>
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>© 2026 AI APP LABS. All rights reserved.</p>
         </div>
       </div>
 
-      {/* Right panel — Login form */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      {/* Right panel — Form */}
+      <div className="flex-1 flex items-center justify-center p-8" style={{ background: '#ffffff' }}>
         <div className="w-full max-w-md">
           {/* Mobile logo */}
-          <div className="flex items-center gap-2 mb-10 lg:hidden">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
-              <img src="/icon.svg" alt="AI APP LABS" className="w-8 h-8 object-contain" />
+          <div className="flex items-center gap-2.5 mb-10 lg:hidden">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden" style={{ background: '#f5f3ff', border: '1px solid #ddd6fe' }}>
+              <img src="/icon.svg" alt="AI APP LABS" className="w-5 h-5 object-contain" />
             </div>
-            <span className="text-lg font-bold text-white">AI APP LABS Admin</span>
+            <span className="text-lg font-bold" style={{ color: '#1E2A32' }}>AI APP LABS Admin</span>
           </div>
 
           <div className="mb-8">
-            <div className="inline-flex items-center gap-1.5 text-xs font-medium text-violet-400 bg-violet-400/10 border border-violet-400/20 rounded-full px-3 py-1 mb-4">
+            <div className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full mb-4" style={{ background: '#f5f3ff', color: '#8b5cf6', border: '1px solid #ddd6fe' }}>
               <ShieldCheck className="w-3 h-3" />
               Administrator access only
             </div>
-            <h1 className="text-2xl font-bold text-white mb-1.5">Admin sign in</h1>
-            <p className="text-slate-500 text-sm">Enter your admin credentials to access the portal</p>
+            <h1 className="text-2xl font-bold mb-1.5" style={{ color: '#1E2A32', letterSpacing: '-0.03em' }}>Admin sign in</h1>
+            <p className="text-sm" style={{ color: '#5F6B76' }}>Enter your admin credentials to access the portal</p>
           </div>
 
           {error && (
-            <div className="mb-6 flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
-              <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
-              <p className="text-red-400 text-sm">{error}</p>
+            <div className="mb-6 flex items-start gap-3 p-4 rounded-xl animate-fade-up" style={{ background: '#fff1f2', border: '1px solid #fecaca' }}>
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#ef4444' }} />
+              <p className="text-sm" style={{ color: '#ef4444' }}>{error}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-300">Email address</label>
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@yourdomain.com"
-                  className="pl-10 bg-slate-800/80 border-slate-700 text-white placeholder-slate-600 focus:border-violet-500 h-11 rounded-xl"
-                  required
-                />
-              </div>
+            {/* Email — floating label */}
+            <div className="fl-wrap rounded-xl transition-all" style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC' }}
+              onFocusCapture={e => (e.currentTarget as HTMLElement).style.borderColor = '#8b5cf6'}
+              onBlurCapture={e => (e.currentTarget as HTMLElement).style.borderColor = '#DDE5EC'}
+            >
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 z-10 pointer-events-none" style={{ color: '#8A97A3' }} />
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder=" "
+                required
+                className="w-full pl-10 pr-4 rounded-xl text-sm outline-none bg-transparent transition-all"
+                style={{ color: '#1E2A32' }}
+              />
+              <label>Email address</label>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-300">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Your admin password"
-                  className="pl-10 bg-slate-800/80 border-slate-700 text-white placeholder-slate-600 focus:border-violet-500 h-11 rounded-xl"
-                  required
-                />
-              </div>
+            {/* Password — floating label */}
+            <div className="fl-wrap rounded-xl transition-all" style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC' }}
+              onFocusCapture={e => (e.currentTarget as HTMLElement).style.borderColor = '#8b5cf6'}
+              onBlurCapture={e => (e.currentTarget as HTMLElement).style.borderColor = '#DDE5EC'}
+            >
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 z-10 pointer-events-none" style={{ color: '#8A97A3' }} />
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder=" "
+                required
+                className="w-full pl-10 pr-4 rounded-xl text-sm outline-none bg-transparent transition-all"
+                style={{ color: '#1E2A32' }}
+              />
+              <label>Password</label>
             </div>
 
-            <Button
+            <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-11 bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-violet-600/20 mt-2 flex items-center justify-center gap-2"
+              className="w-full h-12 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 active:scale-95 mt-2"
+              style={{
+                background: 'linear-gradient(135deg, #a78bfa 0%, #8b5cf6 45%, #7c3aed 100%)',
+                boxShadow: '0 4px 16px rgba(139,92,246,0.38), inset 0 1px 0 rgba(255,255,255,0.2)',
+              }}
             >
               {isLoading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Signing in...
-                </>
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Signing in…</>
               ) : (
-                <>
-                  Sign in to admin portal <ArrowRight className="w-4 h-4" />
-                </>
+                <>Sign in to admin portal <ArrowRight className="w-4 h-4" /></>
               )}
-            </Button>
+            </button>
           </form>
 
-          <p className="text-center text-slate-600 text-xs mt-8">
+          <p className="text-center text-xs mt-8" style={{ color: '#8A97A3' }}>
             Not an admin?{' '}
-            <a href="/login" className="text-slate-500 hover:text-slate-300 transition-colors">
+            <a href="/login" className="transition-colors" style={{ color: '#5F6B76' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#3A8DDE'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#5F6B76'}
+            >
               Go to client login
             </a>
           </p>

@@ -1,28 +1,34 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Testimonial } from '@/lib/types';
 import {
   Star, CheckCircle2, Clock, XCircle, AlertCircle,
   ThumbsUp, ThumbsDown, Filter, MessageSquare,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
+
+const CARD = {
+  background: 'rgba(255,255,255,0.72)',
+  backdropFilter: 'blur(20px) saturate(1.6)',
+  WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
+  border: '1px solid rgba(255,255,255,0.55)',
+  borderRadius: 16,
+  boxShadow: '0 4px 24px rgba(30,40,60,0.08), inset 0 1px 0 rgba(255,255,255,0.85)',
+};
 
 const STATUS_CONFIG = {
-  pending:  { label: 'Under Review', badge: 'bg-amber-500/15 text-amber-400',    icon: Clock },
-  approved: { label: 'Published',    badge: 'bg-emerald-500/15 text-emerald-400', icon: CheckCircle2 },
-  rejected: { label: 'Rejected',     badge: 'bg-red-500/15 text-red-400',         icon: XCircle },
+  pending:  { label: 'Under Review', pillClass: 'pill-pending',  icon: Clock },
+  approved: { label: 'Published',    pillClass: 'pill-active',   icon: CheckCircle2 },
+  rejected: { label: 'Rejected',     pillClass: 'pill-rejected', icon: XCircle },
 };
 
 function StarRating({ value }: { value: number }) {
   return (
     <div className="flex gap-0.5">
       {[1, 2, 3, 4, 5].map(n => (
-        <Star
-          key={n}
-          className={`w-4 h-4 ${n <= value ? 'fill-amber-400 text-amber-400' : 'text-slate-600'}`}
-        />
+        <Star key={n} className={`w-3.5 h-3.5 ${n <= value ? 'fill-amber-400 text-amber-400' : ''}`} style={n > value ? { color: '#DDE5EC' } : {}} />
       ))}
     </div>
   );
@@ -48,16 +54,9 @@ export default function AdminTestimonialsPage() {
     finally { setIsLoading(false); }
   };
 
-  const notify = (type: 'success' | 'error', message: string) => {
-    setNotification({ type, message });
-    setTimeout(() => setNotification(null), 4000);
-  };
-
-  const getState = (id: string) =>
-    actionState[id] ?? { isLoading: false, feedback: '', showFeedback: false };
-
-  const setState = (id: string, patch: Partial<typeof actionState[string]>) =>
-    setActionState(prev => ({ ...prev, [id]: { ...getState(id), ...patch } }));
+  const notify = (type: 'success' | 'error', message: string) => { setNotification({ type, message }); setTimeout(() => setNotification(null), 4000); };
+  const getState = (id: string) => actionState[id] ?? { isLoading: false, feedback: '', showFeedback: false };
+  const setState = (id: string, patch: Partial<typeof actionState[string]>) => setActionState(prev => ({ ...prev, [id]: { ...getState(id), ...patch } }));
 
   const handleAction = async (id: string, status: 'approved' | 'rejected') => {
     const st = getState(id);
@@ -73,14 +72,8 @@ export default function AdminTestimonialsPage() {
         setTestimonials(prev => prev.map(t => t._id === id ? result.data : t));
         setState(id, { isLoading: false, feedback: '', showFeedback: false });
         notify('success', `Testimonial ${status === 'approved' ? 'published' : 'rejected'} successfully.`);
-      } else {
-        notify('error', result.error || 'Action failed');
-        setState(id, { isLoading: false });
-      }
-    } catch {
-      notify('error', 'Network error');
-      setState(id, { isLoading: false });
-    }
+      } else { notify('error', result.error || 'Action failed'); setState(id, { isLoading: false }); }
+    } catch { notify('error', 'Network error'); setState(id, { isLoading: false }); }
   };
 
   const filtered = filter === 'all' ? testimonials : testimonials.filter(t => t.status === filter);
@@ -92,78 +85,93 @@ export default function AdminTestimonialsPage() {
   };
 
   return (
-    <div className="min-h-screen">
-      <div className="px-8 pt-8 pb-6 border-b border-slate-800">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Testimonials</h1>
-            <p className="text-sm text-slate-500 mt-1">Review and publish client testimonials</p>
+    <div className="min-h-screen" style={{ background: '#E9EEF2' }}>
+      <PageHeader
+        title="Testimonials"
+        subtitle="Review and publish client testimonials"
+        breadcrumbs={[{ label: 'Admin', href: '/dashboard/admin' }, { label: 'Testimonials' }]}
+        heroStrip={true}
+        actions={counts.pending > 0 ? (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl" style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#f59e0b' }}>
+            <Clock className="w-3.5 h-3.5" />
+            <span className="text-sm font-semibold">{counts.pending} awaiting review</span>
           </div>
-          {counts.pending > 0 && (
-            <span className="flex items-center gap-1.5 text-xs bg-amber-500/15 text-amber-400 px-3 py-1.5 rounded-full font-semibold border border-amber-500/20">
-              <Clock className="w-3.5 h-3.5" /> {counts.pending} awaiting review
-            </span>
-          )}
-        </div>
-      </div>
+        ) : undefined}
+      />
 
-      <div className="p-8 space-y-6">
+      <div className="p-8 space-y-5">
         {notification && (
-          <div className={`flex items-center gap-3 p-3.5 rounded-xl border text-sm ${
-            notification.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'
-          }`}>
+          <div
+            className="flex items-center gap-3 p-3.5 rounded-xl text-sm font-medium"
+            style={notification.type === 'success'
+              ? { background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#10b981' }
+              : { background: '#fff1f2', border: '1px solid #fecaca', color: '#ef4444' }}
+          >
             {notification.type === 'success' ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
             {notification.message}
           </div>
         )}
 
         {/* Filter tabs */}
-        <div className="flex items-center gap-1 bg-slate-800/60 border border-slate-700/50 rounded-xl p-1 w-fit">
-          <Filter className="w-3.5 h-3.5 text-slate-500 ml-2 mr-1" />
+        <div className="flex items-center gap-1 rounded-xl p-1 w-fit" style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC' }}>
+          <Filter className="w-3.5 h-3.5 ml-2 mr-1 flex-shrink-0" style={{ color: '#8A97A3' }} />
           {(['all', 'pending', 'approved', 'rejected'] as const).map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize ${
-                filter === f ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-slate-300'
-              }`}
-            >
+            <button key={f} onClick={() => setFilter(f)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+              style={filter === f
+                ? { background: '#3A8DDE', color: '#ffffff' }
+                : { color: '#5F6B76' }}>
               {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                filter === f ? 'bg-slate-600 text-slate-300' : 'bg-slate-700/50 text-slate-600'
-              }`}>
+              <span
+                className="text-[10px] px-1.5 py-0.5 rounded-full"
+                style={filter === f
+                  ? { background: 'rgba(255,255,255,0.25)', color: '#ffffff' }
+                  : { background: '#DDE5EC', color: '#5F6B76' }}>
                 {counts[f]}
               </span>
             </button>
           ))}
         </div>
 
+        {/* Stats */}
+        <div className="grid grid-cols-4 gap-4">
+          {[
+            { label: 'Total',     value: counts.all,      accentFrom: '#5F6B76', valueColor: '#1E2A32' },
+            { label: 'Pending',   value: counts.pending,  accentFrom: '#f59e0b', valueColor: '#f59e0b' },
+            { label: 'Published', value: counts.approved, accentFrom: '#10b981', valueColor: '#10b981' },
+            { label: 'Rejected',  value: counts.rejected, accentFrom: '#ef4444', valueColor: '#ef4444' },
+          ].map(s => (
+            <div key={s.label} style={CARD} className="relative p-4 overflow-hidden">
+              <div className="h-[3px] absolute top-0 inset-x-0 rounded-t-2xl" style={{ background: `linear-gradient(to right, ${s.accentFrom}, transparent)` }} />
+              <p className="text-xs mb-1.5 font-medium" style={{ color: '#5F6B76' }}>{s.label}</p>
+              <p className="text-2xl font-bold tabular-nums" style={{ color: s.valueColor }}>{s.value}</p>
+            </div>
+          ))}
+        </div>
+
         {/* List */}
         {isLoading ? (
-          <div className="flex justify-center items-center h-32">
-            <div className="w-7 h-7 border-2 border-slate-600 border-t-blue-500 rounded-full animate-spin" />
+          <div className="flex flex-col items-center justify-center h-40 gap-3">
+            <div className="w-7 h-7 border-2 rounded-full animate-spin" style={{ borderColor: 'rgba(58,141,222,0.2)', borderTopColor: '#3A8DDE' }} />
+            <p className="text-xs" style={{ color: '#8A97A3' }}>Loading…</p>
           </div>
         ) : filtered.length === 0 ? (
-          <Card className="bg-slate-800/60 border-slate-700/50 p-14 text-center">
-            <div className="w-14 h-14 bg-slate-700/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <MessageSquare className="w-7 h-7 text-slate-600" />
-            </div>
-            <p className="text-slate-400 font-medium mb-1.5">
-              {filter === 'all' ? 'No testimonials yet' : `No ${filter} testimonials`}
-            </p>
-            <p className="text-slate-600 text-sm">Testimonials submitted by clients will appear here</p>
-          </Card>
+          <EmptyState
+            variant="generic"
+            title="No testimonials yet"
+            description={filter === 'all' ? 'Testimonials submitted by clients will appear here' : `No ${filter} testimonials at the moment`}
+          />
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {filtered.map(t => {
               const sc = STATUS_CONFIG[t.status];
               const StatusIcon = sc.icon;
               const st = getState(t._id!);
-
               return (
-                <Card key={t._id} className={`border transition-all ${t.status === 'approved' ? 'bg-emerald-500/5 border-emerald-500/20' : t.status === 'rejected' ? 'bg-red-500/5 border-red-500/20' : 'bg-slate-800/60 border-slate-700/50'}`}>
+                <div key={t._id} style={{ ...CARD, border: t.status === 'approved' ? '1px solid #a7f3d0' : t.status === 'rejected' ? '1px solid #fecaca' : '1px solid rgba(255,255,255,0.55)' }} className="overflow-hidden transition-all">
+                  {t.status === 'approved' && <div className="h-[3px] bg-gradient-to-r from-emerald-400 via-emerald-200 to-transparent" />}
+                  {t.status === 'pending' && <div className="h-[3px] bg-gradient-to-r from-amber-400 via-amber-200 to-transparent" />}
                   <div className="p-6">
-                    {/* Header */}
                     <div className="flex items-start justify-between gap-4 mb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
@@ -172,100 +180,74 @@ export default function AdminTestimonialsPage() {
                           </span>
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-white">{t.clientName || 'Client'}</p>
+                          <p className="text-sm font-semibold" style={{ color: '#1E2A32' }}>{t.clientName || 'Client'}</p>
                           <StarRating value={t.rating} />
                         </div>
                       </div>
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-semibold flex-shrink-0 ${sc.badge}`}>
-                        <StatusIcon className="w-3 h-3" />
-                        {sc.label}
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-semibold flex-shrink-0 ${sc.pillClass}`}>
+                        <StatusIcon className="w-3 h-3" />{sc.label}
                       </span>
                     </div>
 
-                    {/* Testimonial text */}
-                    <blockquote className="text-sm text-slate-300 leading-relaxed italic border-l-2 border-slate-600 pl-4 mb-4">
-                      "{t.testimonialText}"
+                    <blockquote className="text-sm leading-relaxed italic pl-4 mb-3" style={{ color: '#334155', borderLeft: '2px solid #c8dff0' }}>
+                      &quot;{t.testimonialText}&quot;
                     </blockquote>
+                    <p className="text-xs mb-4" style={{ color: '#8A97A3' }}>Submitted {new Date(t.createdAt!).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
 
-                    <p className="text-xs text-slate-600 mb-4">
-                      Submitted {new Date(t.createdAt!).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                    </p>
-
-                    {/* Existing admin feedback */}
                     {t.adminFeedback && (
-                      <div className="mb-4 p-3 bg-slate-700/30 rounded-lg border border-slate-700/50">
-                        <p className="text-xs text-slate-500">Your note: <span className="text-slate-400">{t.adminFeedback}</span></p>
+                      <div className="mb-4 p-3 rounded-xl" style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC' }}>
+                        <p className="text-xs" style={{ color: '#5F6B76' }}>Your note: <span style={{ color: '#334155' }}>{t.adminFeedback}</span></p>
                       </div>
                     )}
 
-                    {/* Actions (only for pending) */}
                     {t.status === 'pending' && (
-                      <div className="space-y-3 pt-3 border-t border-slate-700/50">
+                      <div className="space-y-3 pt-4" style={{ borderTop: '1px solid #f1f5f9' }}>
                         {st.showFeedback && (
                           <div>
-                            <label className="text-xs font-medium text-slate-400 block mb-1.5">
-                              Optional note to client
-                            </label>
-                            <textarea
-                              value={st.feedback}
-                              onChange={e => setState(t._id!, { feedback: e.target.value })}
-                              placeholder="Add a note for the client (optional)"
-                              rows={2}
-                              className="w-full px-3 py-2 bg-slate-700/80 border border-slate-600 text-white rounded-lg placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 text-xs resize-none"
-                            />
+                            <label className="text-xs font-semibold uppercase tracking-wider block mb-1.5" style={{ color: '#5F6B76' }}>Optional note to client</label>
+                            <textarea value={st.feedback} onChange={e => setState(t._id!, { feedback: e.target.value })} placeholder="Add a note for the client (optional)" rows={2}
+                              className="w-full px-4 py-3 rounded-xl text-xs resize-none transition-all focus:outline-none"
+                              style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC', color: '#1E2A32' }} />
                           </div>
                         )}
                         <div className="flex items-center gap-2">
-                          <Button
-                            onClick={() => handleAction(t._id!, 'approved')}
-                            disabled={st.isLoading}
-                            className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg h-8 px-4 disabled:opacity-60"
-                          >
+                          <button onClick={() => handleAction(t._id!, 'approved')} disabled={st.isLoading}
+                            className="btn-primary flex items-center gap-1.5 disabled:opacity-60 text-xs font-semibold rounded-xl h-9 px-4">
                             <ThumbsUp className="w-3.5 h-3.5" /> Publish
-                          </Button>
-                          <Button
-                            onClick={() => handleAction(t._id!, 'rejected')}
-                            disabled={st.isLoading}
-                            className="flex items-center gap-1.5 bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/30 text-xs font-semibold rounded-lg h-8 px-4 disabled:opacity-60"
-                          >
+                          </button>
+                          <button onClick={() => handleAction(t._id!, 'rejected')} disabled={st.isLoading}
+                            className="flex items-center gap-1.5 text-xs font-semibold rounded-xl h-9 px-4 transition-colors"
+                            style={{ background: '#fff1f2', color: '#ef4444', border: '1px solid #fecaca' }}>
                             <ThumbsDown className="w-3.5 h-3.5" /> Reject
-                          </Button>
-                          <button
-                            onClick={() => setState(t._id!, { showFeedback: !st.showFeedback })}
-                            className="text-xs text-slate-500 hover:text-slate-300 transition-colors ml-1"
-                          >
+                          </button>
+                          <button onClick={() => setState(t._id!, { showFeedback: !st.showFeedback })} className="text-xs ml-1 transition-colors" style={{ color: '#5F6B76' }}>
                             {st.showFeedback ? 'Hide note' : '+ Add note'}
                           </button>
-                          {st.isLoading && <div className="w-4 h-4 border-2 border-slate-600 border-t-blue-500 rounded-full animate-spin ml-2" />}
+                          {st.isLoading && <div className="w-4 h-4 border-2 rounded-full animate-spin ml-2" style={{ borderColor: 'rgba(58,141,222,0.2)', borderTopColor: '#3A8DDE' }} />}
                         </div>
                       </div>
                     )}
 
-                    {/* Re-review actions for already-decided */}
                     {t.status !== 'pending' && (
-                      <div className="pt-3 border-t border-slate-700/40 flex items-center gap-2">
+                      <div className="pt-4 flex items-center gap-2" style={{ borderTop: '1px solid #f1f5f9' }}>
                         {t.status === 'rejected' && (
-                          <Button
-                            onClick={() => handleAction(t._id!, 'approved')}
-                            disabled={getState(t._id!).isLoading}
-                            className="flex items-center gap-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-xs font-semibold rounded-lg h-7 px-3 disabled:opacity-60"
-                          >
+                          <button onClick={() => handleAction(t._id!, 'approved')} disabled={getState(t._id!).isLoading}
+                            className="flex items-center gap-1.5 text-xs font-semibold rounded-xl h-7 px-3 transition-colors"
+                            style={{ background: '#ecfdf5', color: '#10b981', border: '1px solid #a7f3d0' }}>
                             <ThumbsUp className="w-3 h-3" /> Publish instead
-                          </Button>
+                          </button>
                         )}
                         {t.status === 'approved' && (
-                          <Button
-                            onClick={() => handleAction(t._id!, 'rejected')}
-                            disabled={getState(t._id!).isLoading}
-                            className="flex items-center gap-1.5 bg-slate-700/50 hover:bg-slate-700 text-slate-400 border border-slate-600/50 text-xs font-semibold rounded-lg h-7 px-3 disabled:opacity-60"
-                          >
+                          <button onClick={() => handleAction(t._id!, 'rejected')} disabled={getState(t._id!).isLoading}
+                            className="flex items-center gap-1.5 text-xs font-semibold rounded-xl h-7 px-3 transition-colors"
+                            style={{ background: 'rgba(58,141,222,0.06)', color: '#5F6B76', border: '1px solid #DDE5EC' }}>
                             <XCircle className="w-3 h-3" /> Unpublish
-                          </Button>
+                          </button>
                         )}
                       </div>
                     )}
                   </div>
-                </Card>
+                </div>
               );
             })}
           </div>

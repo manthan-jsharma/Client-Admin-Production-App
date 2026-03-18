@@ -4,13 +4,11 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Zap, Mail, Lock, AlertCircle, ArrowRight, Clock } from 'lucide-react';
+import { Mail, Lock, AlertCircle, ArrowRight, Clock, CheckCircle2, FolderKanban, MessageSquare, CreditCard } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, user } = useAuth();
+  const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
@@ -20,180 +18,178 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
-
     try {
       if (!email || !password) throw new Error('Please enter email and password');
-
       await login(email, password);
       await new Promise(resolve => setTimeout(resolve, 50));
-
-      // After login, get the freshest user state from context
-      // We check via the refreshed context in the next microtask
     } catch (err: any) {
       setError(err.message || 'Login failed');
       setIsLoading(false);
       return;
     }
-
-    // Redirect based on stored user data (populated by login())
     const storedUser = localStorage.getItem('auth_user');
     if (!storedUser) { setIsLoading(false); return; }
-
     const parsedUser = JSON.parse(storedUser);
-
-    if (parsedUser.status === 'pending') {
-      router.push('/pending');
-      return;
-    }
-
-    if (parsedUser.role === 'admin') {
-      router.push('/dashboard/admin');
-    } else {
-      router.push('/dashboard/client');
-    }
+    if (parsedUser.status === 'pending') { router.push('/pending'); return; }
+    router.push(parsedUser.role === 'admin' ? '/dashboard/admin' : '/dashboard/client');
   };
 
+  const features = [
+    { icon: FolderKanban, text: 'Real-time project tracking & roadmaps' },
+    { icon: MessageSquare, text: 'Client communication & file sharing' },
+    { icon: CreditCard, text: 'Payment management & invoicing' },
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-950 flex">
+    <div className="min-h-screen flex" style={{ background: '#E9EEF2' }}>
       {/* Left panel — Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 p-12 flex-col justify-between relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500 rounded-full filter blur-3xl -translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500 rounded-full filter blur-3xl translate-x-1/2 translate-y-1/2" />
-        </div>
+      <div
+        className="hidden lg:flex lg:w-1/2 p-12 flex-col justify-between relative overflow-hidden"
+        style={{ background: 'linear-gradient(145deg, #3A8DDE 0%, #2F6FB2 40%, #1a4f82 100%)' }}
+      >
+        {/* Decorative circles */}
+        <div className="absolute top-0 right-0 w-80 h-80 rounded-full opacity-10" style={{ background: '#ffffff', transform: 'translate(30%, -30%)' }} />
+        <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full opacity-10" style={{ background: '#ffffff', transform: 'translate(-30%, 30%)' }} />
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 rounded-full opacity-5" style={{ background: '#ffffff', transform: 'translate(-50%, -50%)' }} />
 
+        {/* Logo */}
         <div className="relative flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden">
-            <img src="/icon.svg" alt="AI APP LABS" className="w-10 h-10 object-contain" />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden" style={{ background: 'rgba(255,255,255,0.15)' }}>
+            <img src="/icon.svg" alt="AI APP LABS" className="w-7 h-7 object-contain" />
           </div>
-          <span className="text-xl font-bold text-white">AI APP LABS</span>
+          <span className="text-xl font-bold text-white" style={{ letterSpacing: '-0.02em' }}>AI APP LABS</span>
         </div>
 
-        <div className="relative space-y-6">
+        {/* Copy */}
+        <div className="relative space-y-8">
           <div>
-            <h2 className="text-4xl font-bold text-white leading-tight mb-4">
+            <h2 className="text-4xl font-bold text-white leading-tight mb-4" style={{ letterSpacing: '-0.03em' }}>
               Manage projects<br />with confidence.
             </h2>
-            <p className="text-slate-400 text-lg leading-relaxed">
+            <p className="text-base leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>
               A unified workspace for tracking progress, communicating with clients, and delivering results on time.
             </p>
           </div>
-          <div className="space-y-3">
-            {[
-              'Real-time project tracking & roadmaps',
-              'Client communication & file sharing',
-              'Payment management & invoicing',
-            ].map((f) => (
-              <div key={f} className="flex items-center gap-3">
-                <div className="w-5 h-5 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center flex-shrink-0">
-                  <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+          <div className="space-y-3.5">
+            {features.map(({ icon: Icon, text }) => (
+              <div key={text} className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                  <Icon className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-slate-300 text-sm">{f}</span>
+                <span className="text-sm" style={{ color: 'rgba(255,255,255,0.85)' }}>{text}</span>
               </div>
             ))}
           </div>
         </div>
 
         <div className="relative">
-          <p className="text-slate-600 text-sm">© 2026 AI APP LABS. All rights reserved.</p>
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>© 2026 AI APP LABS. All rights reserved.</p>
         </div>
       </div>
 
-      {/* Right panel — Login form */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      {/* Right panel — Form */}
+      <div className="flex-1 flex items-center justify-center p-8" style={{ background: '#ffffff' }}>
         <div className="w-full max-w-md">
           {/* Mobile logo */}
-          <div className="flex items-center gap-2 mb-10 lg:hidden">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
-              <img src="/icon.svg" alt="AI APP LABS" className="w-8 h-8 object-contain" />
+          <div className="flex items-center gap-2.5 mb-10 lg:hidden">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden" style={{ background: '#eff8ff', border: '1px solid #c8dff0' }}>
+              <img src="/icon.svg" alt="AI APP LABS" className="w-5 h-5 object-contain" />
             </div>
-            <span className="text-lg font-bold text-white">AI APP LABS</span>
+            <span className="text-lg font-bold" style={{ color: '#1E2A32' }}>AI APP LABS</span>
           </div>
 
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-white mb-1.5">Welcome back</h1>
-            <p className="text-slate-400 text-sm">Sign in to your account to continue</p>
+            <h1 className="text-2xl font-bold mb-1.5" style={{ color: '#1E2A32', letterSpacing: '-0.03em' }}>Welcome back</h1>
+            <p className="text-sm" style={{ color: '#5F6B76' }}>Sign in to your account to continue</p>
           </div>
 
           {error && (
-            <div className="mb-6 flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
-              <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
-              <p className="text-red-400 text-sm">{error}</p>
+            <div className="mb-5 flex items-start gap-3 p-4 rounded-xl animate-fade-up" style={{ background: '#fff1f2', border: '1px solid #fecaca' }}>
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#ef4444' }} />
+              <p className="text-sm" style={{ color: '#ef4444' }}>{error}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-300">Email address</label>
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="pl-10 bg-slate-800/80 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 h-11 rounded-xl"
-                  required
-                />
-              </div>
+            {/* Email — floating label */}
+            <div className="fl-wrap rounded-xl transition-all" style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC' }}
+              onFocusCapture={e => (e.currentTarget as HTMLElement).style.borderColor = '#3A8DDE'}
+              onBlurCapture={e => (e.currentTarget as HTMLElement).style.borderColor = '#DDE5EC'}
+            >
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 z-10 pointer-events-none" style={{ color: '#8A97A3' }} />
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder=" "
+                required
+                className="w-full pl-10 pr-4 rounded-xl text-sm outline-none bg-transparent transition-all"
+                style={{ color: '#1E2A32' }}
+              />
+              <label>Email address</label>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-300">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Your password"
-                  className="pl-10 bg-slate-800/80 border-slate-700 text-white placeholder-slate-500 focus:border-blue-500 h-11 rounded-xl"
-                  required
-                />
-              </div>
+            {/* Password — floating label */}
+            <div className="fl-wrap rounded-xl transition-all" style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC' }}
+              onFocusCapture={e => (e.currentTarget as HTMLElement).style.borderColor = '#3A8DDE'}
+              onBlurCapture={e => (e.currentTarget as HTMLElement).style.borderColor = '#DDE5EC'}
+            >
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 z-10 pointer-events-none" style={{ color: '#8A97A3' }} />
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder=" "
+                required
+                className="w-full pl-10 pr-4 rounded-xl text-sm outline-none bg-transparent transition-all"
+                style={{ color: '#1E2A32' }}
+              />
+              <label>Password</label>
             </div>
 
-            <Button
+            <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-11 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-600/20 mt-2 flex items-center justify-center gap-2"
+              className="btn-primary w-full h-12 rounded-xl text-sm flex items-center justify-center gap-2 active:scale-95 mt-2"
             >
               {isLoading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Signing in...
+                  Signing in…
                 </>
               ) : (
-                <>
-                  Sign in <ArrowRight className="w-4 h-4" />
-                </>
+                <>Sign in <ArrowRight className="w-4 h-4" /></>
               )}
-            </Button>
+            </button>
           </form>
 
           {/* Demo credentials */}
-          <div className="mt-6 p-4 bg-slate-800/60 border border-slate-700/50 rounded-xl">
-            <p className="text-xs font-semibold text-slate-400 mb-2.5 uppercase tracking-wider">Demo Credentials</p>
+          <div className="mt-6 p-4 rounded-xl" style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC' }}>
+            <p className="text-[11px] font-semibold uppercase tracking-wider mb-2.5" style={{ color: '#8A97A3' }}>Demo Credentials</p>
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500">Client</span>
-                <span className="text-xs text-slate-300 font-mono">client@example.com / Test1234</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500">Admin</span>
-                <span className="text-xs text-slate-300 font-mono">admin@example.com / Test1234</span>
-              </div>
+              {[
+                { role: 'Client', creds: 'client@example.com / Test1234' },
+                { role: 'Admin',  creds: 'admin@example.com / Test1234' },
+              ].map(({ role, creds }) => (
+                <div key={role} className="flex items-center justify-between">
+                  <span className="text-xs" style={{ color: '#8A97A3' }}>{role}</span>
+                  <span className="text-xs font-mono" style={{ color: '#334155' }}>{creds}</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="mt-4 flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-            <Clock className="w-4 h-4 text-amber-400 flex-shrink-0" />
-            <p className="text-xs text-amber-300">New accounts require admin approval before access is granted.</p>
+          <div className="mt-3 flex items-center gap-2 p-3 rounded-xl" style={{ background: '#fffbeb', border: '1px solid #fde68a' }}>
+            <Clock className="w-4 h-4 flex-shrink-0" style={{ color: '#f59e0b' }} />
+            <p className="text-xs" style={{ color: '#92400e' }}>New accounts require admin approval before access is granted.</p>
           </div>
 
-          <p className="text-center text-slate-500 text-sm mt-6">
+          <p className="text-center text-sm mt-6" style={{ color: '#8A97A3' }}>
             Don&apos;t have an account?{' '}
-            <Link href="/signup" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
+            <Link href="/signup" className="font-semibold transition-colors" style={{ color: '#3A8DDE' }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#2F6FB2'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = '#3A8DDE'}
+            >
               Create account
             </Link>
           </p>

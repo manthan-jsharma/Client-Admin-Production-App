@@ -1,19 +1,28 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Referral } from '@/lib/types';
 import {
   Users, Clock, CheckCircle2, XCircle, PhoneCall, Mail,
-  Building2, MessageSquare, ChevronDown, AlertCircle, Search,
+  Building2, MessageSquare, ChevronDown, AlertCircle, Search, TrendingUp,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 
-const statusConfig: Record<Referral['status'], { label: string; badge: string; icon: React.ComponentType<{ className?: string }> }> = {
-  pending: { label: 'Pending', badge: 'bg-amber-500/15 text-amber-400', icon: Clock },
-  contacted: { label: 'Contacted', badge: 'bg-blue-500/15 text-blue-400', icon: PhoneCall },
-  converted: { label: 'Converted', badge: 'bg-emerald-500/15 text-emerald-400', icon: CheckCircle2 },
-  rejected: { label: 'Not Qualified', badge: 'bg-red-500/15 text-red-400', icon: XCircle },
+const CARD = {
+  background: 'rgba(255,255,255,0.72)',
+  backdropFilter: 'blur(20px) saturate(1.6)',
+  WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
+  border: '1px solid rgba(255,255,255,0.55)',
+  boxShadow: '0 4px 24px rgba(58,141,222,0.08), 0 1px 4px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.85)',
+  borderRadius: '18px',
+};
+
+const statusConfig: Record<Referral['status'], { label: string; color: string; bg: string; border: string; dot: string; icon: React.ComponentType<{ className?: string }> }> = {
+  pending:   { label: 'Pending',       color: '#f59e0b', bg: '#fffbeb', border: '#fde68a', dot: '#f59e0b', icon: Clock },
+  contacted: { label: 'Contacted',     color: '#3A8DDE', bg: '#eff8ff', border: '#c8dff0', dot: '#3A8DDE', icon: PhoneCall },
+  converted: { label: 'Converted',     color: '#6BCF7A', bg: 'rgba(107,207,122,0.1)', border: '#a7f3d0', dot: '#6BCF7A', icon: CheckCircle2 },
+  rejected:  { label: 'Not Qualified', color: '#8A97A3', bg: 'rgba(58,141,222,0.06)', border: '#DDE5EC', dot: '#8A97A3', icon: XCircle },
 };
 
 export default function AdminReferralsPage() {
@@ -23,48 +32,30 @@ export default function AdminReferralsPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | Referral['status']>('all');
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  useEffect(() => {
-    fetchReferrals();
-  }, []);
+  useEffect(() => { fetchReferrals(); }, []);
 
   const fetchReferrals = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/admin/referrals', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
-      });
+      const res = await fetch('/api/admin/referrals', { headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` } });
       const result = await res.json();
       if (result.success) setReferrals(result.data);
-    } catch {
-      notify('error', 'Failed to load referrals');
-    } finally {
-      setIsLoading(false);
-    }
+    } catch { notify('error', 'Failed to load referrals'); }
+    finally { setIsLoading(false); }
   };
 
-  const notify = (type: 'success' | 'error', message: string) => {
-    setNotification({ type, message });
-    setTimeout(() => setNotification(null), 4000);
-  };
+  const notify = (type: 'success' | 'error', message: string) => { setNotification({ type, message }); setTimeout(() => setNotification(null), 4000); };
 
   const updateStatus = async (id: string, status: Referral['status']) => {
     try {
       const res = await fetch(`/api/admin/referrals/${id}`, {
         method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
       const result = await res.json();
-      if (result.success) {
-        setReferrals(prev => prev.map(r => r._id === id ? result.data : r));
-        notify('success', 'Referral status updated');
-      }
-    } catch {
-      notify('error', 'Failed to update referral');
-    }
+      if (result.success) { setReferrals(prev => prev.map(r => r._id === id ? result.data : r)); notify('success', 'Status updated'); }
+    } catch { notify('error', 'Failed to update'); }
   };
 
   const filtered = referrals.filter(r => {
@@ -73,8 +64,7 @@ export default function AdminReferralsPage() {
       r.refereeEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.referredByName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.refereeCompany?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    return matchesSearch && (statusFilter === 'all' || r.status === statusFilter);
   });
 
   const counts = {
@@ -85,163 +75,175 @@ export default function AdminReferralsPage() {
     rejected: referrals.filter(r => r.status === 'rejected').length,
   };
 
-  return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <div className="px-8 pt-8 pb-6 border-b border-slate-800">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Referral Submissions</h1>
-            <p className="text-sm text-slate-500 mt-1">
-              {counts.pending > 0
-                ? <span className="text-amber-400">{counts.pending} pending review</span>
-                : `${referrals.length} total referrals · ${counts.converted} converted`}
-            </p>
-          </div>
-          {counts.converted > 0 && (
-            <div className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-              <p className="text-xs font-medium text-emerald-400">{counts.converted} converted</p>
-            </div>
-          )}
-        </div>
-      </div>
+  const conversionRate = referrals.length > 0 ? Math.round((counts.converted / referrals.length) * 100) : 0;
 
-      <div className="p-8 space-y-6">
-        {/* Notification */}
+  return (
+    <div className="min-h-screen animate-fade-up">
+      <PageHeader
+        title="Referrals"
+        subtitle={counts.pending > 0 ? `${counts.pending} pending review` : `${referrals.length} total · ${counts.converted} converted`}
+        breadcrumbs={[{ label: 'Admin', href: '/dashboard/admin' }, { label: 'Referrals' }]}
+        heroStrip
+        actions={conversionRate > 0 ? (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl" style={{ background: '#ecfdf5', border: '1px solid #a7f3d0' }}>
+            <TrendingUp className="w-3.5 h-3.5" style={{ color: '#10b981' }} />
+            <span className="text-sm font-semibold" style={{ color: '#10b981' }}>{conversionRate}% conversion</span>
+          </div>
+        ) : undefined}
+      />
+
+      <div className="p-8 space-y-5">
         {notification && (
-          <div className={`flex items-center gap-3 p-3.5 rounded-xl border text-sm ${
-            notification.type === 'success'
-              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-              : 'bg-red-500/10 border-red-500/20 text-red-400'
-          }`}>
-            {notification.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          <div
+            className="flex items-center gap-3 p-3.5 rounded-xl text-sm font-medium"
+            style={notification.type === 'success'
+              ? { background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#10b981' }
+              : { background: '#fff1f2', border: '1px solid #fecaca', color: '#ef4444' }}
+          >
+            {notification.type === 'success' ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
             {notification.message}
           </div>
         )}
 
-        {/* Summary cards */}
+        {/* Summary stat cards — clickable filters */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {([
-            { key: 'pending', label: 'Pending', value: counts.pending, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-            { key: 'contacted', label: 'Contacted', value: counts.contacted, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-            { key: 'converted', label: 'Converted', value: counts.converted, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-            { key: 'rejected', label: 'Not Qualified', value: counts.rejected, color: 'text-red-400', bg: 'bg-red-500/10' },
+            { key: 'pending',   label: 'Pending',       value: counts.pending,   color: '#f59e0b', accentColor: '#f59e0b' },
+            { key: 'contacted', label: 'Contacted',      value: counts.contacted, color: '#3A8DDE', accentColor: '#3A8DDE' },
+            { key: 'converted', label: 'Converted',      value: counts.converted, color: '#10b981', accentColor: '#10b981' },
+            { key: 'rejected',  label: 'Not Qualified',  value: counts.rejected,  color: '#8A97A3', accentColor: '#8A97A3' },
           ] as const).map(stat => (
-            <Card key={stat.key} className={`bg-slate-800/60 border-slate-700/50 p-4 cursor-pointer transition-all hover:border-slate-600 ${statusFilter === stat.key ? 'ring-1 ring-blue-500/40' : ''}`}
-              onClick={() => setStatusFilter(statusFilter === stat.key ? 'all' : stat.key as Referral['status'])}>
-              <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
-              <p className="text-xs text-slate-500 mt-0.5">{stat.label}</p>
-            </Card>
+            <button
+              key={stat.key}
+              onClick={() => setStatusFilter(statusFilter === stat.key ? 'all' : stat.key)}
+              className="relative overflow-hidden text-left transition-all duration-200 hover:-translate-y-0.5"
+              style={{
+                ...CARD,
+                padding: '16px',
+                outline: statusFilter === stat.key ? `2px solid ${stat.accentColor}40` : 'none',
+                outlineOffset: '2px',
+              }}
+            >
+              <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: `linear-gradient(90deg, ${stat.accentColor}, ${stat.accentColor}88)` }} />
+              <p className="text-2xl font-bold tabular-nums" style={{ color: stat.color }}>{stat.value}</p>
+              <p className="text-xs mt-0.5 font-medium" style={{ color: '#8A97A3' }}>{stat.label}</p>
+            </button>
           ))}
         </div>
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search by name, email, company..."
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-800/60 border border-slate-700/50 text-white rounded-xl placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-sm"
-          />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: '#8A97A3' }} />
+          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search by name, email, company…" className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none transition-all" style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC', color: '#334155' }} />
         </div>
 
         {/* Referrals List */}
         {isLoading ? (
-          <div className="flex justify-center items-center h-40">
-            <div className="w-8 h-8 border-2 border-slate-600 border-t-blue-500 rounded-full animate-spin" />
+          <div className="flex flex-col items-center justify-center h-40 gap-3">
+            <div className="w-7 h-7 border-2 rounded-full animate-spin" style={{ borderColor: 'rgba(58,141,222,0.2)', borderTopColor: '#3A8DDE' }} />
+            <p className="text-xs" style={{ color: '#5F6B76' }}>Loading referrals…</p>
           </div>
         ) : filtered.length > 0 ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {filtered.map(referral => {
               const sc = statusConfig[referral.status];
               const StatusIcon = sc.icon;
-
               return (
-                <Card key={referral._id} className="bg-slate-800/60 border-slate-700/50 hover:border-slate-600 transition-all duration-200">
+                <div
+                  key={referral._id}
+                  className="overflow-hidden transition-all duration-200"
+                  style={{
+                    ...CARD,
+                    borderColor: referral.status === 'converted' ? '#a7f3d0' : '#DDE5EC',
+                  }}
+                >
+                  {referral.status === 'converted' && (
+                    <div className="h-[3px]" style={{ background: 'linear-gradient(90deg, #10b981, #52b7f4)' }} />
+                  )}
                   <div className="p-5">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-4 flex-1 min-w-0">
-                        <div className="w-11 h-11 bg-slate-700/60 rounded-xl flex items-center justify-center flex-shrink-0">
-                          <Users className="w-5 h-5 text-slate-400" />
+                        {/* Avatar */}
+                        <div
+                          className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-sm"
+                          style={referral.status === 'converted'
+                            ? { background: '#ecfdf5', color: '#10b981', border: '1px solid #a7f3d0' }
+                            : { background: 'rgba(58,141,222,0.06)', color: '#5F6B76', border: '1px solid #DDE5EC' }}
+                        >
+                          {referral.refereeName.charAt(0).toUpperCase()}
                         </div>
+
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2 flex-wrap">
-                            <h3 className="text-sm font-semibold text-white">{referral.refereeName}</h3>
-                            <span className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full font-medium ${sc.badge}`}>
-                              <StatusIcon className="w-3 h-3" />
-                              {sc.label}
+                          <div className="flex items-center gap-2 mb-2.5 flex-wrap">
+                            <h3 className="text-sm font-semibold" style={{ color: '#1E2A32' }}>{referral.refereeName}</h3>
+                            <span
+                              className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full font-semibold"
+                              style={{ background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}
+                            >
+                              <StatusIcon className="w-3 h-3" />{sc.label}
                             </span>
                           </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mb-3">
                             <div className="flex items-center gap-2 text-xs">
-                              <Mail className="w-3.5 h-3.5 text-slate-600" />
-                              <span className="text-slate-400 truncate">{referral.refereeEmail}</span>
+                              <Mail className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#8A97A3' }} />
+                              <span className="truncate" style={{ color: '#334155' }}>{referral.refereeEmail}</span>
                             </div>
                             {referral.refereePhone && (
                               <div className="flex items-center gap-2 text-xs">
-                                <PhoneCall className="w-3.5 h-3.5 text-slate-600" />
-                                <span className="text-slate-400">{referral.refereePhone}</span>
+                                <PhoneCall className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#8A97A3' }} />
+                                <span style={{ color: '#334155' }}>{referral.refereePhone}</span>
                               </div>
                             )}
                             {referral.refereeCompany && (
                               <div className="flex items-center gap-2 text-xs">
-                                <Building2 className="w-3.5 h-3.5 text-slate-600" />
-                                <span className="text-slate-400">{referral.refereeCompany}</span>
+                                <Building2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#8A97A3' }} />
+                                <span style={{ color: '#334155' }}>{referral.refereeCompany}</span>
                               </div>
                             )}
                             <div className="flex items-center gap-2 text-xs">
-                              <Users className="w-3.5 h-3.5 text-slate-600" />
-                              <span className="text-slate-400">Referred by <span className="text-slate-300 font-medium">{referral.referredByName}</span></span>
+                              <Users className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#8A97A3' }} />
+                              <span style={{ color: '#5F6B76' }}>Referred by <span className="font-medium" style={{ color: '#334155' }}>{referral.referredByName}</span></span>
                             </div>
                           </div>
 
                           {referral.notes && (
-                            <div className="flex items-start gap-2 text-xs bg-slate-700/30 rounded-lg px-3 py-2 mb-3">
-                              <MessageSquare className="w-3.5 h-3.5 text-slate-500 flex-shrink-0 mt-0.5" />
-                              <p className="text-slate-400">{referral.notes}</p>
+                            <div className="flex items-start gap-2 text-xs rounded-xl px-3 py-2 mb-2.5" style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC' }}>
+                              <MessageSquare className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: '#8A97A3' }} />
+                              <p className="leading-relaxed" style={{ color: '#5F6B76' }}>{referral.notes}</p>
                             </div>
                           )}
 
-                          <p className="text-xs text-slate-600 flex items-center gap-1.5">
+                          <p className="text-xs flex items-center gap-1.5" style={{ color: '#8A97A3' }}>
                             <Clock className="w-3 h-3" />
-                            {new Date(referral.createdAt!).toLocaleDateString('en-US', {
-                              month: 'short', day: 'numeric', year: 'numeric',
-                            })}
+                            {new Date(referral.createdAt!).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                           </p>
                         </div>
                       </div>
 
-                      {/* Status update dropdown */}
+                      {/* Status update */}
                       <div className="relative flex-shrink-0">
                         <select
                           value={referral.status}
                           onChange={e => updateStatus(referral._id!, e.target.value as Referral['status'])}
-                          className="h-9 pl-3 pr-8 bg-slate-700 border border-slate-600 text-slate-300 rounded-xl text-xs appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer"
+                          className="h-9 pl-3 pr-8 rounded-xl text-xs appearance-none focus:outline-none cursor-pointer transition-colors"
+                          style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC', color: '#334155' }}
                         >
                           <option value="pending">Pending</option>
                           <option value="contacted">Contacted</option>
                           <option value="converted">Converted</option>
                           <option value="rejected">Not Qualified</option>
                         </select>
-                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500 pointer-events-none" />
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none" style={{ color: '#8A97A3' }} />
                       </div>
                     </div>
                   </div>
-                </Card>
+                </div>
               );
             })}
           </div>
         ) : (
-          <Card className="bg-slate-800/60 border-slate-700/50 p-14 text-center">
-            <div className="w-14 h-14 bg-slate-700/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Users className="w-7 h-7 text-slate-600" />
-            </div>
-            <p className="text-slate-400 font-medium mb-1.5">No referrals found</p>
-            <p className="text-slate-600 text-sm">Referrals submitted by clients will appear here</p>
-          </Card>
+          <EmptyState variant="clients" />
         )}
       </div>
     </div>
