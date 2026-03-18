@@ -6,8 +6,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FileUploadField } from '@/components/ui/file-upload-field';
-import PageHeader from '@/components/ui/page-header';
-import EmptyState from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Project, Delivery, SetupItem } from '@/lib/types';
 import {
   ArrowLeft, Brain, Film, CheckCircle2, Circle, Video,
