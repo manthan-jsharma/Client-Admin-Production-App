@@ -35,6 +35,24 @@ const STATUS_BADGE: Record<string, React.CSSProperties> = {
   revision_requested: { background: '#fff1f2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: '9999px', fontSize: '11px', padding: '2px 10px', fontWeight: 600 },
 };
 
+function getEmbedUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes('youtu.be')) {
+      const id = u.pathname.slice(1).split('?')[0];
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+    if (u.hostname.includes('youtube.com')) {
+      const id = u.searchParams.get('v');
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+    if (u.hostname.includes('loom.com')) {
+      return url.replace('/share/', '/embed/');
+    }
+    return null;
+  } catch { return null; }
+}
+
 const UPLOAD_BADGE: Record<string, React.CSSProperties> = {
   pending_review: { background: '#fffbeb', color: '#f59e0b', border: '1px solid #fde68a', borderRadius: '9999px', fontSize: '11px', padding: '2px 10px', fontWeight: 600 },
   approved: { background: 'rgba(107,207,122,0.1)', color: '#6BCF7A', border: '1px solid #a7f3d0', borderRadius: '9999px', fontSize: '11px', padding: '2px 10px', fontWeight: 600 },
@@ -485,25 +503,35 @@ export default function ClientProjectDetailPage() {
                       {item.description && <p className="text-xs mt-0.5" style={{ color: '#5F6B76' }}>{item.description}</p>}
 
                       {/* Video embed */}
-                      {item.videoUrl && item.completed && (
-                        <div className="mt-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Video className="w-3.5 h-3.5" style={{ color: '#3A8DDE' }} />
-                            <span className="text-xs font-medium" style={{ color: '#3A8DDE' }}>Progress Video</span>
+                      {item.videoUrl && item.completed && (() => {
+                        const embedUrl = getEmbedUrl(item.videoUrl);
+                        return (
+                          <div className="mt-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Video className="w-3.5 h-3.5" style={{ color: '#3A8DDE' }} />
+                              <span className="text-xs font-medium" style={{ color: '#3A8DDE' }}>Progress Video</span>
+                            </div>
+                            {embedUrl ? (
+                              <div className="aspect-video rounded-xl overflow-hidden" style={{ background: '#f1f5f9', border: '1px solid #DDE5EC' }}>
+                                <iframe
+                                  width="100%" height="100%"
+                                  src={embedUrl}
+                                  title={`Day ${item.day} Progress`}
+                                  frameBorder="0"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                />
+                              </div>
+                            ) : (
+                              <a href={item.videoUrl} target="_blank" rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+                                style={{ background: '#eff8ff', color: '#3A8DDE', border: '1px solid #c8dff0' }}>
+                                <ExternalLink className="w-3 h-3" /> Watch Video
+                              </a>
+                            )}
                           </div>
-                          <div className="aspect-video rounded-xl overflow-hidden" style={{ background: '#f1f5f9', border: '1px solid #DDE5EC' }}>
-                            <iframe
-                              width="100%"
-                              height="100%"
-                              src={item.videoUrl.replace('youtu.be/', 'youtube.com/embed/').replace('watch?v=', 'embed/')}
-                              title={`Day ${item.day} Progress`}
-                              frameBorder="0"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen
-                            />
-                          </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -547,7 +575,7 @@ export default function ClientProjectDetailPage() {
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-sm font-bold" style={{ color: '#3A8DDE' }}>D{d.deliveryNumber}</span>
                           {d.status === 'approved'
-                            ? <span className="pill-info">{d.status === 'client_reviewing' ? 'Awaiting Your Review' : d.status.replace('_', ' ')}</span>
+                            ? <span className="pill-info">{d.status.replace('_', ' ')}</span>
                             : d.status === 'client_reviewing'
                             ? <span className="pill-pending">Awaiting Your Review</span>
                             : d.status === 'revision_requested'

@@ -57,6 +57,10 @@ export default function AdminProjectDetailPage() {
   const [dayForm, setDayForm] = useState({ title: '', description: '', videoUrl: '', adminNotes: '', completed: false });
   const [savingDay, setSavingDay] = useState(false);
 
+  // Dev delivery review state
+  const [devRevisionId, setDevRevisionId] = useState<string | null>(null);
+  const [devRevisionNote, setDevRevisionNote] = useState('');
+
   // Delivery form
   const [showDeliveryForm, setShowDeliveryForm] = useState(false);
   const [deliveryForm, setDeliveryForm] = useState({ title: '', description: '', deliveryNumber: '', proofS3Key: '', adminNotes: '' });
@@ -759,7 +763,7 @@ export default function AdminProjectDetailPage() {
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-xs font-bold" style={{ color: '#3A8DDE' }}>D{d.deliveryNumber}</span>
-                          {d.status === 'approved' || d.status === 'completed'
+                          {d.status === 'approved'
                             ? <span className="pill-info">{d.status.replace('_', ' ')}</span>
                             : d.status === 'pending'
                             ? <span className="pill-pending">{d.status.replace('_', ' ')}</span>
@@ -771,6 +775,23 @@ export default function AdminProjectDetailPage() {
                         <h3 className="text-sm font-semibold" style={{ color: '#1E2A32' }}>{d.title}</h3>
                       </div>
                       <div className="flex gap-2 flex-shrink-0">
+                        {d.status === 'submitted' && (
+                          <button
+                            onClick={() => updateDeliveryStatus(d._id!, { status: 'client_reviewing' })}
+                            className="btn-primary rounded-xl h-7 px-3 text-xs font-medium transition-all active:scale-95"
+                          >
+                            Approve → Send to Client
+                          </button>
+                        )}
+                        {d.status === 'submitted' && devRevisionId !== d._id && (
+                          <button
+                            onClick={() => { setDevRevisionId(d._id!); setDevRevisionNote(''); }}
+                            className="rounded-xl h-7 px-3 text-xs font-medium transition-all active:scale-95"
+                            style={{ background: '#fff1f2', color: '#ef4444', border: '1px solid #fecaca' }}
+                          >
+                            Request Revision
+                          </button>
+                        )}
                         {d.status === 'pending' && (
                           <button
                             onClick={() => updateDeliveryStatus(d._id!, { status: 'client_reviewing', proofS3Key: d.proofS3Key })}
@@ -791,6 +812,45 @@ export default function AdminProjectDetailPage() {
                       </div>
                     </div>
                     <p className="text-xs mb-3" style={{ color: '#5F6B76' }}>{d.description}</p>
+
+                    {/* Dev-submitted: note + inline revision form */}
+                    {d.status === 'submitted' && (
+                      <div className="mb-3 space-y-2">
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs" style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC' }}>
+                          <span style={{ color: '#3A8DDE', fontWeight: 600 }}>⚡ Dev submission</span>
+                          <span style={{ color: '#5F6B76' }}>— review before sending to client</span>
+                        </div>
+                        {devRevisionId === d._id && (
+                          <div className="space-y-2">
+                            <textarea
+                              value={devRevisionNote}
+                              onChange={e => setDevRevisionNote(e.target.value)}
+                              placeholder="Explain what needs to be changed..."
+                              rows={2}
+                              className="w-full px-3 py-2 rounded-xl text-xs resize-none focus:outline-none"
+                              style={{ background: '#fff1f2', border: '1px solid #fecaca', color: '#1E2A32' }}
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  updateDeliveryStatus(d._id!, { status: 'revision_requested', adminNotes: devRevisionNote });
+                                  setDevRevisionId(null);
+                                }}
+                                disabled={!devRevisionNote.trim()}
+                                className="rounded-xl h-7 px-3 text-xs font-medium active:scale-95 disabled:opacity-40"
+                                style={{ background: '#ef4444', color: '#fff' }}
+                              >
+                                Send Revision Request
+                              </button>
+                              <button onClick={() => setDevRevisionId(null)} className="rounded-xl h-7 px-3 text-xs font-medium" style={{ background: 'rgba(58,141,222,0.06)', color: '#5F6B76', border: '1px solid #DDE5EC' }}>
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       {d.proofS3Key && (
                         <div style={{ color: '#8A97A3' }}>

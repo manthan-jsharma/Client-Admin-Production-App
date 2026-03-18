@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Project } from '@/lib/types';
-import { Brain, Film, Calendar, ChevronRight, FolderKanban } from 'lucide-react';
+import { Brain, Film, Calendar, ChevronRight, FolderKanban, Search } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
 
@@ -44,6 +44,7 @@ const STATUS_COLORS: Record<string, { badgeStyle: React.CSSProperties; dotColor:
 
 export default function ClientProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -68,6 +69,22 @@ export default function ClientProjectsPage() {
       />
 
       <div className="p-8">
+        {/* Search bar */}
+        {!isLoading && projects.length > 0 && (
+          <div style={{ position: 'relative', maxWidth: 340, marginBottom: 20 }}>
+            <Search style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#8A97A3', pointerEvents: 'none' }} />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search projects…"
+              style={{ width: '100%', padding: '9px 14px 9px 34px', borderRadius: 11, border: '1px solid #DDE5EC', background: 'rgba(255,255,255,0.8)', fontSize: 13, color: '#1E2A32', outline: 'none', boxSizing: 'border-box' }}
+              onFocus={e => { e.currentTarget.style.borderColor = '#3A8DDE'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(58,141,222,0.1)'; }}
+              onBlur={e => { e.currentTarget.style.borderColor = '#DDE5EC'; e.currentTarget.style.boxShadow = 'none'; }}
+            />
+          </div>
+        )}
+
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-40 gap-3">
             <div className="w-7 h-7 border-2 rounded-full animate-spin" style={{ borderColor: 'rgba(58,141,222,0.2)', borderTopColor: '#3A8DDE' }} />
@@ -75,7 +92,7 @@ export default function ClientProjectsPage() {
           </div>
         ) : projects.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {projects.map(project => {
+            {projects.filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase())).map(project => {
               const ts = TYPE_STYLES[project.type as keyof typeof TYPE_STYLES] ?? TYPE_STYLES.ai_saas;
               const TypeIcon = ts.icon;
               const sc = STATUS_COLORS[project.status] ?? STATUS_COLORS.planning;

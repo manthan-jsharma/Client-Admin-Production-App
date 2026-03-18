@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTicketById, updateTicket, getUserById, createMessage } from '@/lib/db';
 import { verifyToken, extractToken } from '@/lib/auth';
-import { sendTicketStatusChanged } from '@/lib/email';
 import { tgTicketResponse } from '@/lib/telegram';
 import { ChatMessage } from '@/lib/types';
 
@@ -75,14 +74,6 @@ export async function PATCH(
       if (clientUser) {
         void tgTicketResponse({
           clientId: ticket.clientId,
-          subject: ticket.subject,
-          newStatus: (updates.status as string) || ticket.status,
-          adminResponse: updates.adminResponse as string | undefined,
-          ticketId,
-        });
-        sendTicketStatusChanged({
-          clientEmail: clientUser.email,
-          clientName: clientUser.name,
           subject: ticket.subject,
           newStatus: (updates.status as string) || ticket.status,
           adminResponse: updates.adminResponse as string | undefined,

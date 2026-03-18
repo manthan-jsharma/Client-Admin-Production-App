@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, extractToken } from '@/lib/auth';
 import { getProjectById, getDeliveryById, updateDelivery, deleteDelivery, getUserById } from '@/lib/db';
-import { sendDeliveryApproved, sendDeliveryRevisionRequested, sendDeliveryCreated } from '@/lib/email';
 import { tgDeliveryReady, tgDeliveryApproved } from '@/lib/telegram';
 
 // PATCH /api/projects/[projectId]/deliveries/[deliveryId]
@@ -57,39 +56,11 @@ export async function PATCH(
 
     const updated = await updateDelivery(deliveryId, updates);
 
-    // Email notifications based on action taken
-    if (payload.role === 'client') {
-      // Client signed off or requested revision → notify admin
-      if (body.action === 'approve') {
-        sendDeliveryApproved({
-          projectName: project.name,
-          deliveryNumber: delivery.deliveryNumber,
-          deliveryTitle: delivery.title,
-          clientName: payload.userId, // resolved below
-          clientFeedback: body.clientFeedback,
-        });
-      } else if (body.action === 'request_revision') {
-        sendDeliveryRevisionRequested({
-          projectName: project.name,
-          deliveryNumber: delivery.deliveryNumber,
-          deliveryTitle: delivery.title,
-          clientName: payload.userId,
-          clientFeedback: body.clientFeedback,
-        });
-      }
-    } else if (payload.role === 'admin') {
-      // Admin sent delivery for review → notify client
+    if (payload.role === 'admin') {
+      // Admin sent delivery for review → notify client via Telegram
       if ((body.status === 'client_reviewing' || body.proofS3Key) && project.clientId) {
         const clientUser = await getUserById(project.clientId);
         if (clientUser) {
-          sendDeliveryCreated({
-            clientEmail: clientUser.email,
-            clientName: clientUser.name,
-            projectName: project.name,
-            deliveryNumber: delivery.deliveryNumber,
-            deliveryTitle: delivery.title,
-            projectId,
-          });
           void tgDeliveryReady({
             clientId: project.clientId,
             projectName: project.name,

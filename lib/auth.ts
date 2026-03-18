@@ -7,7 +7,7 @@ const BCRYPT_ROUNDS = 12;
 interface JWTPayload {
   userId: string;
   email: string;
-  role: 'admin' | 'client';
+  role: 'admin' | 'client' | 'dev';
   iat?: number;
   exp?: number;
 }

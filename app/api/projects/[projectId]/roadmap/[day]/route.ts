@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, extractToken } from '@/lib/auth';
-import { getProjectById, updateRoadmapItem, getUserById } from '@/lib/db';
-import { sendDailyProgressUpdated } from '@/lib/email';
-
+import { getProjectById, updateRoadmapItem } from '@/lib/db';
 // PATCH /api/projects/[projectId]/roadmap/[day]
 // Admin updates a roadmap day: title, description, videoUrl, completed, adminNotes
 export async function PATCH(
@@ -14,8 +12,8 @@ export async function PATCH(
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const payload = verifyToken(token);
-    if (!payload || payload.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden — admin only' }, { status: 403 });
+    if (!payload || (payload.role !== 'admin' && payload.role !== 'dev')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const { projectId, day } = await params;
@@ -27,8 +25,18 @@ export async function PATCH(
     const project = await getProjectById(projectId);
     if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
 
+    // Dev can only update videoUrl, and only for assigned projects
+    if (payload.role === 'dev') {
+      if (!project.assignedDevs?.includes(payload.userId)) {
+        return NextResponse.json({ error: 'Forbidden — not assigned to this project' }, { status: 403 });
+      }
+    }
+
     const body = await request.json();
-    const allowedFields = ['title', 'description', 'videoUrl', 'completed', 'adminNotes'];
+    // Dev can only update videoUrl; admin can update all fields
+    const allowedFields = payload.role === 'dev'
+      ? ['videoUrl']
+      : ['title', 'description', 'videoUrl', 'completed', 'adminNotes'];
     const updates: Record<string, unknown> = {};
     for (const key of allowedFields) {
       if (key in body) updates[key] = body[key];
@@ -37,22 +45,6 @@ export async function PATCH(
     const wasCompleted = project.roadmap.find(r => r.day === dayNum)?.completed;
     const updated = await updateRoadmapItem(projectId, dayNum, updates);
     if (!updated) return NextResponse.json({ error: 'Day not found in roadmap' }, { status: 404 });
-
-    // Notify client when a day is newly marked complete
-    if (updates.completed === true && !wasCompleted) {
-      const clientUser = await getUserById(project.clientId);
-      if (clientUser) {
-        sendDailyProgressUpdated({
-          clientEmail: clientUser.email,
-          clientName: clientUser.name,
-          projectName: project.name,
-          day: dayNum,
-          dayTitle: (updates.title as string) || updated.title,
-          videoUrl: (updates.videoUrl as string) || updated.videoUrl,
-          projectId,
-        });
-      }
-    }
 
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {
@@ -78,6 +70,9 @@ export async function GET(
     if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
 
     if (payload.role === 'client' && project.clientId !== payload.userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    if (payload.role === 'dev' && !project.assignedDevs?.includes(payload.userId)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

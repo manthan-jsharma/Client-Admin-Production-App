@@ -4,10 +4,12 @@ import React from 'react';
 
 interface EmptyStateProps {
   variant?: 'projects' | 'clients' | 'payments' | 'messages' | 'analytics' | 'generic';
-  title: string;
+  title?: string;
   description?: string;
   action?: React.ReactNode;
   size?: number;
+  icon?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 /* ── Animated SVG illustrations ── */
@@ -206,7 +208,7 @@ const ILLUSTRATIONS = {
   generic:   GenericIllustration,
 };
 
-export function EmptyState({ variant = 'generic', title, description, action, size = 120 }: EmptyStateProps) {
+export function EmptyState({ variant = 'generic', title, description, action, size = 120, icon, children }: EmptyStateProps) {
   const Illustration = ILLUSTRATIONS[variant];
   return (
     <div
@@ -216,18 +218,25 @@ export function EmptyState({ variant = 'generic', title, description, action, si
         justifyContent: 'center', padding: '48px 24px', textAlign: 'center',
       }}
     >
-      <div style={{ marginBottom: 20, filter: 'drop-shadow(0 4px 12px rgba(58,141,222,0.12))' }}>
-        <Illustration size={size} />
-      </div>
-      <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1E2A32', marginBottom: 6, letterSpacing: '-0.01em' }}>
-        {title}
-      </h3>
+      {icon ? (
+        <div style={{ marginBottom: 20 }}>{icon}</div>
+      ) : (
+        <div style={{ marginBottom: 20, filter: 'drop-shadow(0 4px 12px rgba(58,141,222,0.12))' }}>
+          <Illustration size={size} />
+        </div>
+      )}
+      {title && (
+        <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1E2A32', marginBottom: 6, letterSpacing: '-0.01em' }}>
+          {title}
+        </h3>
+      )}
       {description && (
-        <p style={{ fontSize: 13, color: '#8A97A3', lineHeight: 1.6, maxWidth: 300, marginBottom: action ? 20 : 0 }}>
+        <p style={{ fontSize: 13, color: '#8A97A3', lineHeight: 1.6, maxWidth: 300, marginBottom: (action || children) ? 20 : 0 }}>
           {description}
         </p>
       )}
       {action && <div style={{ marginTop: 4 }}>{action}</div>}
+      {children && <div style={{ marginTop: 12 }}>{children}</div>}
     </div>
   );
 }

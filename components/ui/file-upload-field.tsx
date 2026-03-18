@@ -93,22 +93,22 @@ export function FileUploadField({
   return (
     <div className={`space-y-1.5 ${className}`}>
       {label && (
-        <label className="text-sm font-medium text-slate-300 block">
+        <label className="text-sm font-medium text-slate-700 block">
           {label}
         </label>
       )}
 
       {/* Current file display */}
       {value && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/60 border border-slate-600/60 rounded-xl text-xs">
-          <span className="text-slate-400 flex-shrink-0">{fileIcon(value)}</span>
-          <span className="text-slate-300 flex-1 truncate font-mono">{shortUrl(value)}</span>
+        <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-xl text-xs">
+          <span className="text-blue-500 flex-shrink-0">{fileIcon(value)}</span>
+          <span className="text-slate-700 flex-1 truncate font-mono">{shortUrl(value)}</span>
           {!isMock && (
             <a
               href={value}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-300 flex-shrink-0 transition-colors"
+              className="text-blue-500 hover:text-blue-700 flex-shrink-0 transition-colors"
               title="Open file"
             >
               <ExternalLink className="w-3.5 h-3.5" />
@@ -118,7 +118,7 @@ export function FileUploadField({
             <button
               type="button"
               onClick={() => { onChange(''); setError(null); }}
-              className="text-slate-500 hover:text-red-400 flex-shrink-0 transition-colors"
+              className="text-slate-400 hover:text-red-500 flex-shrink-0 transition-colors"
               title="Remove file"
             >
               <X className="w-3.5 h-3.5" />
@@ -135,13 +135,13 @@ export function FileUploadField({
           disabled={isUploading}
           className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all w-full justify-center ${
             isUploading
-              ? 'border-blue-500/30 bg-blue-500/10 text-blue-400 cursor-wait'
-              : 'border-slate-600 bg-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-slate-200 hover:border-slate-500'
+              ? 'border-blue-300 bg-blue-50 text-blue-600 cursor-wait'
+              : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-400'
           }`}
         >
           {isUploading ? (
             <>
-              <div className="w-3.5 h-3.5 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
+              <div className="w-3.5 h-3.5 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
               Uploading…
             </>
           ) : (
@@ -154,7 +154,7 @@ export function FileUploadField({
       )}
 
       {hint && !error && (
-        <p className="text-[11px] text-slate-600">{hint} · Max {maxSizeMB} MB</p>
+        <p className="text-[11px] text-slate-500">{hint} · Max {maxSizeMB} MB</p>
       )}
 
       {error && (

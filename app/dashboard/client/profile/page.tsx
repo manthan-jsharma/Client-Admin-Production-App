@@ -13,10 +13,6 @@ import {
   AlertCircle,
   CheckCircle2,
   Upload,
-  Send,
-  Link2,
-  Link2Off,
-  ExternalLink,
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 
@@ -71,13 +67,6 @@ export default function ProfilePage() {
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
-  // Telegram connect state
-  const [tgConnected, setTgConnected] = useState(false);
-  const [tgChatId, setTgChatId] = useState<string | null>(null);
-  const [tgDeepLink, setTgDeepLink] = useState<string | null>(null);
-  const [tgLoading, setTgLoading] = useState(false);
-  const [tgDisconnecting, setTgDisconnecting] = useState(false);
-
   useEffect(() => {
     if (user) {
       setForm({
@@ -91,20 +80,6 @@ export default function ProfilePage() {
       setAvatarPreview(user.profilePicture || null);
     }
   }, [user]);
-
-  // Fetch Telegram connect status on mount
-  useEffect(() => {
-    if (!token) return;
-    fetch('/api/telegram/connect', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          setTgConnected(data.connected);
-          setTgChatId(data.chatId);
-        }
-      })
-      .catch(() => {});
-  }, [token]);
 
   const notify = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
@@ -189,44 +164,6 @@ export default function ProfilePage() {
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  const handleTgConnect = async () => {
-    // Open window synchronously before async work — prevents popup blocker
-    const win = window.open('', '_blank');
-    setTgLoading(true);
-    setTgDeepLink(null);
-    try {
-      const res = await fetch('/api/telegram/connect', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.deepLink) {
-        setTgDeepLink(data.deepLink);
-        if (win) win.location.href = data.deepLink;
-      } else {
-        win?.close();
-      }
-    } catch { win?.close(); } finally {
-      setTgLoading(false);
-    }
-  };
-
-  const handleTgDisconnect = async () => {
-    setTgDisconnecting(true);
-    try {
-      await fetch('/api/telegram/disconnect', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setTgConnected(false);
-      setTgChatId(null);
-      setTgDeepLink(null);
-      notify('success', 'Telegram disconnected');
-    } catch { notify('error', 'Failed to disconnect'); } finally {
-      setTgDisconnecting(false);
     }
   };
 
@@ -449,83 +386,6 @@ export default function ProfilePage() {
               </button>
             </div>
           </form>
-        </div>
-
-        {/* Telegram Connect */}
-        <div className="p-6" style={CARD}>
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#eff8ff' }}>
-              <Send className="w-5 h-5" style={{ color: '#3A8DDE' }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-sm font-semibold" style={{ color: '#1E2A32' }}>Telegram Notifications</h2>
-              <p className="text-xs mt-0.5" style={{ color: '#5F6B76' }}>
-                Connect your Telegram account to receive instant notifications for deliveries, payments, tickets, and more.
-              </p>
-
-              {tgConnected ? (
-                <div className="mt-4 space-y-3">
-                  <div className="flex items-center gap-2 text-sm" style={{ color: '#6BCF7A' }}>
-                    <CheckCircle2 className="w-4 h-4" />
-                    Connected{tgChatId ? ` · chat ID ${tgChatId}` : ''}
-                  </div>
-                  <button
-                    onClick={handleTgDisconnect}
-                    disabled={tgDisconnecting}
-                    className="flex items-center gap-1.5 text-xs transition-colors"
-                    style={{ color: '#5F6B76' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#ef4444'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#5F6B76'; }}
-                  >
-                    <Link2Off className="w-3.5 h-3.5" />
-                    {tgDisconnecting ? 'Disconnecting…' : 'Disconnect Telegram'}
-                  </button>
-                </div>
-              ) : (
-                <div className="mt-4 space-y-3">
-                  {!tgDeepLink ? (
-                    <button
-                      onClick={handleTgConnect}
-                      disabled={tgLoading}
-                      className="flex items-center gap-2 text-sm font-medium rounded-xl h-9 px-4 transition-all duration-150 active:scale-95 disabled:opacity-50"
-                      style={{ background: '#eff8ff', color: '#3A8DDE', border: '1px solid #c8dff0' }}
-                    >
-                      <Link2 className="w-3.5 h-3.5" />
-                      {tgLoading ? 'Generating link…' : 'Connect Telegram'}
-                    </button>
-                  ) : (
-                    <div className="space-y-2">
-                      <p className="text-xs" style={{ color: '#334155' }}>
-                        Telegram should have opened automatically. If not, use the button below:
-                      </p>
-                      <a
-                        href={tgDeepLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-sm font-medium rounded-xl h-9 px-4 transition-all duration-150"
-                        style={{ background: '#eff8ff', color: '#3A8DDE', border: '1px solid #c8dff0' }}
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        Open in Telegram
-                      </a>
-                      <p className="text-xs" style={{ color: '#8A97A3' }}>
-                        After sending /start, refresh this page to see the connected status.
-                      </p>
-                      <button
-                        onClick={handleTgConnect}
-                        className="text-xs underline transition-colors"
-                        style={{ color: '#5F6B76' }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#334155'; }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#5F6B76'; }}
-                      >
-                        Generate a new link
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
         </div>
 
         {/* Account Info */}

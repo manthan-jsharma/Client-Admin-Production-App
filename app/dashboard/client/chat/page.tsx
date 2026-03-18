@@ -95,6 +95,57 @@ function TicketBubble({ ticket, isOwn }: { ticket: NonNullable<ChatMessage['tick
   );
 }
 
+// ─── @mention renderer ───────────────────────────────────────────────────────
+
+function renderWithMentions(text: string) {
+  return text.split(/(@\w+)/g).map((part, i) => {
+    if (!part.startsWith('@')) return part;
+    const lower = part.toLowerCase();
+    const color = lower === '@ai' ? '#8b5cf6'
+      : lower === '@admin' ? '#3A8DDE'
+      : lower === '@dev' ? '#16a34a'
+      : '#f59e0b';
+    return (
+      <span key={i} style={{ color, fontWeight: 700, background: `${color}18`, borderRadius: 4, padding: '1px 4px' }}>
+        {part}
+      </span>
+    );
+  });
+}
+
+// ─── Mention picker ───────────────────────────────────────────────────────────
+
+const MENTION_OPTIONS = [
+  { handle: '@AI',    label: 'AI Assistant', color: '#8b5cf6' },
+  { handle: '@admin', label: 'Admin',        color: '#3A8DDE' },
+  { handle: '@dev',   label: 'Developer',   color: '#16a34a' },
+];
+
+function MentionPicker({ query, onSelect }: { query: string; onSelect: (handle: string) => void }) {
+  const filtered = MENTION_OPTIONS.filter(o => o.handle.toLowerCase().startsWith('@' + query.toLowerCase()));
+  if (filtered.length === 0) return null;
+  return (
+    <div
+      className="absolute bottom-full mb-1 left-0 z-50 rounded-xl overflow-hidden"
+      style={{ background: '#ffffff', border: '1px solid #DDE5EC', boxShadow: '0 8px 24px rgba(30,40,60,0.12)', minWidth: 180 }}
+    >
+      {filtered.map(opt => (
+        <button
+          key={opt.handle}
+          onMouseDown={e => { e.preventDefault(); onSelect(opt.handle); }}
+          className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors"
+          style={{ fontSize: 13 }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(58,141,222,0.06)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+        >
+          <span style={{ fontWeight: 700, color: opt.color }}>{opt.handle}</span>
+          <span style={{ color: '#5F6B76', fontSize: 11 }}>{opt.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ─── Message row ──────────────────────────────────────────────────────────────
 
 function MessageRow({ msg, userId }: { msg: ChatMessage; userId: string }) {
@@ -140,12 +191,7 @@ function MessageRow({ msg, userId }: { msg: ChatMessage; userId: string }) {
               : { background: '#ffffff', border: '1px solid #DDE5EC', color: '#334155', borderBottomLeftRadius: '4px' }
             }
           >
-            {/* Highlight @AI tags */}
-            {msg.message.split(/(@AI\b)/gi).map((part, i) =>
-              /^@AI$/i.test(part)
-                ? <span key={i} style={{ color: '#8b5cf6', fontWeight: 600 }}>{part}</span>
-                : part
-            )}
+            {renderWithMentions(msg.message)}
           </div>
         )}
 
@@ -311,6 +357,7 @@ export default function ChatPage() {
   const [showTicketForm, setShowTicketForm] = useState(false);
   const [showProjectPicker, setShowProjectPicker] = useState(false);
   const [lastPollTime, setLastPollTime] = useState<Date>(new Date());
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -337,6 +384,9 @@ export default function ChatPage() {
         if (result.success && result.data.length > 0) {
           setProjects(result.data);
           setActiveProjectId(result.data[0]._id ?? null);
+        } else {
+          // No project yet — use personal inbox so client can still reach admin/AI
+          setActiveProjectId(`inbox_${user?._id}`);
         }
       } catch { /* ignore */ }
     };
@@ -499,8 +549,29 @@ export default function ChatPage() {
     }
   };
 
+  const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setNewMessage(val);
+    // Detect @mention trigger: find last @ and extract word after it
+    const cursor = e.target.selectionStart ?? val.length;
+    const before = val.slice(0, cursor);
+    const match = before.match(/@(\w*)$/);
+    setMentionQuery(match ? match[1] : null);
+  };
+
+  const completeMention = (handle: string) => {
+    const cursor = textareaRef.current?.selectionStart ?? newMessage.length;
+    const before = newMessage.slice(0, cursor);
+    const after = newMessage.slice(cursor);
+    const replaced = before.replace(/@(\w*)$/, handle + ' ');
+    setNewMessage(replaced + after);
+    setMentionQuery(null);
+    setTimeout(() => textareaRef.current?.focus(), 0);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Escape') { setMentionQuery(null); return; }
+    if (e.key === 'Enter' && !e.shiftKey && mentionQuery === null) {
       e.preventDefault();
       sendMessage();
     }
@@ -722,12 +793,15 @@ export default function ChatPage() {
 
               {/* Message textarea */}
               <div className="flex-1 relative">
+                {mentionQuery !== null && (
+                  <MentionPicker query={mentionQuery} onSelect={completeMention} />
+                )}
                 <textarea
                   ref={textareaRef}
                   value={newMessage}
-                  onChange={e => setNewMessage(e.target.value)}
+                  onChange={handleMessageChange}
                   onKeyDown={handleKeyDown}
-                  placeholder="Type a message… or @AI to ask the assistant"
+                  placeholder="Type a message… @AI, @admin, @dev"
                   rows={1}
                   disabled={isSending}
                   className="w-full px-4 py-3 rounded-2xl resize-none focus:outline-none text-sm leading-relaxed transition-all"

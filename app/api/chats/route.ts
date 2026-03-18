@@ -1,43 +1,78 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken, extractToken } from '@/lib/auth';
+import { NextRequest, NextResponse } from "next/server";
+import { verifyToken, extractToken } from "@/lib/auth";
 import {
-  getProjectsByUserId, getProjectMessages, getMessagesSince,
-  createMessage, getUserById, createTicket, getProjectById,
-} from '@/lib/db';
-import { getAIResponse, isAITagged, extractAIQuery } from '@/lib/openai';
-import { ChatMessage, Ticket } from '@/lib/types';
-import { ApiResponse } from '@/lib/types';
-import { sendNewChatMessage, sendServiceInquiryReceived, sendTicketSubmitted } from '@/lib/email';
+  getProjectsByUserId,
+  getProjectMessages,
+  getMessagesSince,
+  createMessage,
+  getUserById,
+  createTicket,
+  getProjectById,
+  getAllUsers,
+} from "@/lib/db";
+import { getAIResponse, isAITagged, extractAIQuery } from "@/lib/openai";
+import { ChatMessage, Ticket } from "@/lib/types";
+import { ApiResponse } from "@/lib/types";
+import { sendServiceInquiryReceived } from "@/lib/email";
+import { tgChatMessage, tgMentionNotify } from "@/lib/telegram";
 
 // GET /api/chats?projectId=xxx&since=ISO_DATE
 // - projectId: optional; defaults to user's first project
 // - since: optional; only return messages newer than this timestamp (for polling)
-export async function GET(request: NextRequest): Promise<NextResponse<ApiResponse<ChatMessage[]>>> {
+export async function GET(
+  request: NextRequest
+): Promise<NextResponse<ApiResponse<ChatMessage[]>>> {
   try {
-    const token = extractToken(request.headers.get('Authorization'));
-    if (!token) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const token = extractToken(request.headers.get("Authorization"));
+    if (!token)
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
 
     const payload = verifyToken(token);
-    if (!payload) return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 });
+    if (!payload)
+      return NextResponse.json(
+        { success: false, error: "Invalid token" },
+        { status: 401 }
+      );
 
     const { searchParams } = new URL(request.url);
-    let projectId = searchParams.get('projectId');
-    const sinceParam = searchParams.get('since');
-    const beforeParam = searchParams.get('before');
+    let projectId = searchParams.get("projectId");
+    const sinceParam = searchParams.get("since");
+    const beforeParam = searchParams.get("before");
     const PAGE_SIZE = 50;
 
     // Resolve projectId
     if (!projectId) {
       const projects = await getProjectsByUserId(payload.userId, payload.role);
-      if (projects.length === 0) return NextResponse.json({ success: true, data: [], hasMore: false });
-      projectId = projects[0]._id!;
+      if (projects.length === 0) {
+        // No project yet — use a personal inbox channel so client can still reach admin/AI
+        projectId = `inbox_${payload.userId}`;
+      } else {
+        projectId = projects[0]._id!;
+      }
     }
 
-    // Verify access
-    const project = await getProjectById(projectId);
-    if (!project) return NextResponse.json({ success: false, error: 'Project not found' }, { status: 404 });
-    if (payload.role === 'client' && project.clientId !== payload.userId) {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    // Verify access (skip for inbox channels — they are personal to the user)
+    if (!projectId.startsWith("inbox_")) {
+      const project = await getProjectById(projectId);
+      if (!project)
+        return NextResponse.json(
+          { success: false, error: "Project not found" },
+          { status: 404 }
+        );
+      if (payload.role === "client" && project.clientId !== payload.userId) {
+        return NextResponse.json(
+          { success: false, error: "Forbidden" },
+          { status: 403 }
+        );
+      }
+    } else if (projectId !== `inbox_${payload.userId}`) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 }
+      );
     }
 
     let messages: ChatMessage[];
@@ -67,58 +102,120 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
 
     return NextResponse.json({ success: true, data: messages, hasMore });
   } catch (error) {
-    console.error('Error fetching messages:', error);
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+    console.error("Error fetching messages:", error);
+    return NextResponse.json(
+      { success: false, error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
 // POST /api/chats
 // Body: { projectId?, message, type?, attachments?, ticket? }
-export async function POST(request: NextRequest): Promise<NextResponse<ApiResponse<ChatMessage | ChatMessage[]>>> {
+export async function POST(
+  request: NextRequest
+): Promise<NextResponse<ApiResponse<ChatMessage | ChatMessage[]>>> {
   try {
-    const token = extractToken(request.headers.get('Authorization'));
-    if (!token) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const token = extractToken(request.headers.get("Authorization"));
+    if (!token)
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
 
     const payload = verifyToken(token);
-    if (!payload) return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 });
+    if (!payload)
+      return NextResponse.json(
+        { success: false, error: "Invalid token" },
+        { status: 401 }
+      );
 
     const body = await request.json();
-    const { message, type = 'text', attachments, ticket: ticketData } = body;
+    const { message, type = "text", attachments, ticket: ticketData } = body;
     let { projectId } = body;
 
-    if (!message?.trim() && type !== 'file' && type !== 'voice' && type !== 'video') {
-      return NextResponse.json({ success: false, error: 'Message is required' }, { status: 400 });
+    if (
+      !message?.trim() &&
+      type !== "file" &&
+      type !== "voice" &&
+      type !== "video"
+    ) {
+      return NextResponse.json(
+        { success: false, error: "Message is required" },
+        { status: 400 }
+      );
     }
 
     // Resolve projectId
     if (!projectId) {
       const projects = await getProjectsByUserId(payload.userId, payload.role);
-      if (projects.length === 0) {
-        return NextResponse.json({ success: false, error: 'No projects found' }, { status: 400 });
-      }
-      projectId = projects[0]._id!;
+      projectId =
+        projects.length > 0 ? projects[0]._id! : `inbox_${payload.userId}`;
     }
 
-    // Verify access
-    const project = await getProjectById(projectId);
-    if (!project) return NextResponse.json({ success: false, error: 'Project not found' }, { status: 404 });
-    if (payload.role === 'client' && project.clientId !== payload.userId) {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    // Verify access (skip for personal inbox channels)
+    let project = null;
+    if (!projectId.startsWith("inbox_")) {
+      project = await getProjectById(projectId);
+      if (!project)
+        return NextResponse.json(
+          { success: false, error: "Project not found" },
+          { status: 404 }
+        );
+      if (payload.role === "client" && project.clientId !== payload.userId) {
+        return NextResponse.json(
+          { success: false, error: "Forbidden" },
+          { status: 403 }
+        );
+      }
+      if (
+        payload.role === "dev" &&
+        !project.assignedDevs?.includes(payload.userId)
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Forbidden — dev not assigned to this project",
+          },
+          { status: 403 }
+        );
+      }
+    } else if (projectId !== `inbox_${payload.userId}`) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 }
+      );
     }
 
     const sender = await getUserById(payload.userId);
-    if (!sender) return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
+    if (!sender)
+      return NextResponse.json(
+        { success: false, error: "User not found" },
+        { status: 404 }
+      );
 
     // Handle ticket submission from chat
     let embeddedTicket = undefined;
-    if (type === 'ticket' && ticketData) {
+    if (type === "ticket" && ticketData) {
       const { ticketType, title, description } = ticketData;
       if (!title?.trim() || !description?.trim()) {
-        return NextResponse.json({ success: false, error: 'Ticket title and description are required' }, { status: 400 });
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Ticket title and description are required",
+          },
+          { status: 400 }
+        );
       }
-      const validTypes = ['bug', 'feature_request'];
+      const validTypes = ["bug", "feature_request"];
       if (!validTypes.includes(ticketType)) {
-        return NextResponse.json({ success: false, error: 'Ticket type must be "bug" or "feature_request"' }, { status: 400 });
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Ticket type must be "bug" or "feature_request"',
+          },
+          { status: 400 }
+        );
       }
 
       const newTicket: Ticket = {
@@ -128,15 +225,15 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
         subject: title.trim(),
         description: description.trim(),
         type: ticketType,
-        status: 'open',
-        priority: 'medium',
+        status: "open",
+        priority: "medium",
       };
       const createdTicket = await createTicket(newTicket);
       embeddedTicket = {
         ticketId: createdTicket._id!,
-        type: ticketType as 'bug' | 'feature_request',
+        type: ticketType as "bug" | "feature_request",
         title: title.trim(),
-        status: 'open' as const,
+        status: "open" as const,
       };
     }
 
@@ -145,9 +242,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
       projectId,
       senderId: payload.userId,
       senderName: sender.name,
-      senderRole: payload.role as 'admin' | 'client',
-      message: message?.trim() || '',
-      type: type as ChatMessage['type'],
+      senderRole: payload.role as "admin" | "client" | "dev",
+      message: message?.trim() || "",
+      type: type as ChatMessage["type"],
       attachments: attachments || undefined,
       ticket: embeddedTicket,
       readBy: [payload.userId],
@@ -157,24 +254,74 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     const savedMessage = await createMessage(userMessage);
     const responses: ChatMessage[] = [savedMessage];
 
+    // ── @mention Telegram notifications ────────────────────────────────────
+    if (message) {
+      const mentionedHandles: string[] = [
+        ...new Set<string>(
+          (message.match(/@(\w+)/g) ?? []).map((m: string) => m.toLowerCase())
+        ),
+      ];
+      if (mentionedHandles.length > 0) {
+        const allUsers = await getAllUsers();
+        for (const handle of mentionedHandles) {
+          if (handle === "@ai") continue;
+          // Match by role: @dev → first dev on project, @admin → project adminId, @client → project clientId
+          let targetId: string | undefined;
+          let mentionedRole: string | undefined;
+          if (handle === "@admin") {
+            targetId = project?.adminId;
+            mentionedRole = "admin";
+          } else if (handle === "@client") {
+            targetId = project?.clientId;
+            mentionedRole = "client";
+          } else if (handle === "@dev") {
+            targetId = project?.assignedDevs?.[0];
+            mentionedRole = "dev";
+          } else {
+            const slug = handle.slice(1).toLowerCase();
+            const found = allUsers.find(
+              (u) => u.name?.toLowerCase().replace(/\s+/g, "") === slug
+            );
+            targetId = found?._id;
+            mentionedRole = found?.role;
+          }
+          if (targetId && targetId !== payload.userId) {
+            void tgMentionNotify({
+              mentionedUserId: targetId,
+              mentionedHandle: handle,
+              mentionedRole: mentionedRole ?? "client",
+              senderName: sender.name,
+              projectName: project?.name ?? "General Chat",
+              messagePreview: message.trim(),
+              projectId,
+            });
+          }
+        }
+      }
+    }
+
     // ── Email notifications ─────────────────────────────────────────────────
     // Notify the other party about the new message (skip AI messages)
-    if (payload.role === 'client') {
+    if (payload.role === "client") {
       // Client → admin: notify admin
-      sendNewChatMessage({
-        recipientEmail: process.env.ADMIN_EMAIL || 'admin@example.com',
-        recipientName: 'Admin',
-        senderName: sender.name,
-        senderRole: 'client',
-        projectName: project.name,
-        messagePreview: message?.trim() || '[attachment]',
+
+      // Telegram to admin — throttled
+      void tgChatMessage({
         projectId,
+        projectName: project?.name ?? "General Chat",
+        senderName: sender.name,
+        senderRole: "client",
+        recipientId: project?.adminId ?? "",
+        messagePreview: message?.trim() || "[attachment]",
       });
 
       // Service inquiry detection: message auto-sent from services page contains this phrase
-      if (message?.toLowerCase().includes("i'm interested in the") || message?.toLowerCase().includes('interested in the')) {
+      if (
+        message?.toLowerCase().includes("i'm interested in the") ||
+        message?.toLowerCase().includes("interested in the")
+      ) {
         const serviceMatch = message.match(/interested in the (.+?) \(/i);
-        const serviceName = serviceMatch ? serviceMatch[1] : 'a service';
+        const serviceName = serviceMatch ? serviceMatch[1] : "a service";
         sendServiceInquiryReceived({
           clientName: sender.name,
           clientEmail: sender.email,
@@ -183,33 +330,32 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
           projectId,
         });
       }
-    } else if (payload.role === 'admin') {
+    } else if (payload.role === "dev") {
+      // Dev → admin: notify admin via Telegram (throttled)
+      void tgChatMessage({
+        projectId,
+        projectName: project?.name ?? "General Chat",
+        senderName: sender.name,
+        senderRole: "dev",
+        recipientId: project?.adminId ?? "",
+        messagePreview: message?.trim() || "[attachment]",
+      });
+    } else if (payload.role === "admin") {
       // Admin → client: look up client email and notify
-      const clientUser = await getUserById(project.clientId);
+      const clientUser = project?.clientId
+        ? await getUserById(project.clientId)
+        : null;
       if (clientUser) {
-        sendNewChatMessage({
-          recipientEmail: clientUser.email,
-          recipientName: clientUser.name,
-          senderName: sender.name,
-          senderRole: 'admin',
-          projectName: project.name,
-          messagePreview: message?.trim() || '[attachment]',
+        // Telegram — throttled: skip if client was active in last 5 min
+        void tgChatMessage({
           projectId,
+          projectName: project?.name ?? "General Chat",
+          senderName: sender.name,
+          senderRole: "admin",
+          recipientId: project?.clientId ?? "",
+          messagePreview: message?.trim() || "[attachment]",
         });
       }
-    }
-
-    // Ticket-in-chat: email admin if a ticket message was just submitted
-    if (type === 'ticket' && embeddedTicket && payload.role === 'client') {
-      sendTicketSubmitted({
-        clientName: sender.name,
-        clientEmail: sender.email,
-        subject: embeddedTicket.title,
-        type: embeddedTicket.type,
-        description: message?.trim() || '',
-        priority: 'medium',
-        ticketId: embeddedTicket.ticketId,
-      });
     }
 
     // AI response — trigger when message contains @AI
@@ -220,21 +366,23 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
         // Build conversation history for context (last 8 messages)
         const history = await getProjectMessages(projectId, 8);
         const aiHistory = history
-          .filter(m => m._id !== savedMessage._id)
-          .map(m => ({
-            role: (m.senderRole === 'ai' ? 'assistant' : 'user') as 'user' | 'assistant',
+          .filter((m) => m._id !== savedMessage._id)
+          .map((m) => ({
+            role: (m.senderRole === "ai" ? "assistant" : "user") as
+              | "user"
+              | "assistant",
             content: m.message,
           }));
 
-        const aiText = await getAIResponse(query || 'Hello', aiHistory);
+        const aiText = await getAIResponse(query || "Hello", aiHistory);
 
         const aiMessage: ChatMessage = {
           projectId,
-          senderId: 'ai-assistant',
-          senderName: 'AI Assistant',
-          senderRole: 'ai',
+          senderId: "ai-assistant",
+          senderName: "AI Assistant",
+          senderRole: "ai",
           message: aiText,
-          type: 'text',
+          type: "text",
           isAI: true,
           readBy: [],
           createdAt: new Date(Date.now() + 100), // slight offset so it sorts after user msg
@@ -243,14 +391,15 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
         responses.push(savedAI);
       } catch (aiError) {
         // AI failure is non-fatal — log and continue
-        console.error('AI response error:', aiError);
+        console.error("AI response error:", aiError);
         const errorMsg: ChatMessage = {
           projectId,
-          senderId: 'ai-assistant',
-          senderName: 'AI Assistant',
-          senderRole: 'ai',
-          message: 'Sorry, I\'m having trouble connecting right now. Please try again or contact your admin directly.',
-          type: 'text',
+          senderId: "ai-assistant",
+          senderName: "AI Assistant",
+          senderRole: "ai",
+          message:
+            "Sorry, I'm having trouble connecting right now. Please try again or contact your admin directly.",
+          type: "text",
           isAI: true,
           readBy: [],
           createdAt: new Date(Date.now() + 100),
@@ -261,11 +410,20 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     }
 
     if (responses.length === 1) {
-      return NextResponse.json({ success: true, data: responses[0] }, { status: 201 });
+      return NextResponse.json(
+        { success: true, data: responses[0] },
+        { status: 201 }
+      );
     }
-    return NextResponse.json({ success: true, data: responses }, { status: 201 });
+    return NextResponse.json(
+      { success: true, data: responses },
+      { status: 201 }
+    );
   } catch (error) {
-    console.error('Error creating message:', error);
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+    console.error("Error creating message:", error);
+    return NextResponse.json(
+      { success: false, error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

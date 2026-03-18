@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ExternalLink, Video } from 'lucide-react';
 
 const CARD = {
   background: 'rgba(255,255,255,0.72)',
@@ -45,8 +46,8 @@ export default function ClientTestimonialsPage() {
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [form, setForm] = useState({ testimonialText: '', rating: 0 });
-  const [errors, setErrors] = useState<{ testimonialText?: string; rating?: string }>({});
+  const [form, setForm] = useState({ testimonialText: '', rating: 0, videoUrl: '' });
+  const [errors, setErrors] = useState<{ testimonialText?: string; rating?: string; videoUrl?: string }>({});
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : '';
 
@@ -67,6 +68,8 @@ export default function ClientTestimonialsPage() {
     const errs: typeof errors = {};
     if (!form.testimonialText.trim() || form.testimonialText.trim().length < 20) errs.testimonialText = 'Please write at least 20 characters';
     if (form.rating < 1) errs.rating = 'Please select a star rating';
+    if (!form.videoUrl.trim()) errs.videoUrl = 'Please paste a Loom or YouTube URL';
+    else if (!form.videoUrl.includes('loom.com') && !form.videoUrl.includes('youtube.com') && !form.videoUrl.includes('youtu.be')) errs.videoUrl = 'Please use a Loom or YouTube URL';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -80,7 +83,7 @@ export default function ClientTestimonialsPage() {
       const result = await res.json();
       if (result.success) {
         setTestimonials(prev => [result.data, ...prev]);
-        setForm({ testimonialText: '', rating: 0 }); setShowForm(false);
+        setForm({ testimonialText: '', rating: 0, videoUrl: '' }); setShowForm(false);
         notify('success', 'Testimonial submitted! It will be reviewed and published shortly.');
       } else notify('error', result.error || 'Failed to submit testimonial');
     } catch { notify('error', 'Network error. Please try again.'); }
@@ -167,6 +170,19 @@ export default function ClientTestimonialsPage() {
                   }} />
                 {errors.testimonialText && <p className="text-xs" style={{ color: '#ef4444' }}>{errors.testimonialText}</p>}
               </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#5F6B76' }}>Video Testimonial URL <span style={{ color: '#ef4444' }}>*</span></label>
+                <input
+                  type="url"
+                  value={form.videoUrl}
+                  onChange={e => { setForm(f => ({ ...f, videoUrl: e.target.value })); setErrors(er => ({ ...er, videoUrl: '' })); }}
+                  placeholder="https://www.loom.com/share/... or https://youtu.be/..."
+                  className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none transition-all"
+                  style={{ background: 'rgba(58,141,222,0.06)', border: errors.videoUrl ? '1px solid #ef4444' : '1px solid #DDE5EC', color: '#1E2A32' }}
+                />
+                {errors.videoUrl && <p className="text-xs" style={{ color: '#ef4444' }}>{errors.videoUrl}</p>}
+                <p className="text-[11px]" style={{ color: '#8A97A3' }}>Paste a Loom or YouTube link — Loom recommended for best quality</p>
+              </div>
               <div className="flex gap-3">
                 <button type="submit" disabled={isSubmitting} className="btn-primary flex items-center gap-2 disabled:opacity-50">
                   {isSubmitting ? 'Submitting…' : <><MessageSquare className="w-4 h-4" /> Submit Testimonial</>}
@@ -220,6 +236,36 @@ export default function ClientTestimonialsPage() {
                     <blockquote className="text-sm leading-relaxed italic pl-4 mb-4" style={{ color: '#334155', borderLeft: '2px solid #DDE5EC' }}>
                       &quot;{t.testimonialText}&quot;
                     </blockquote>
+                    {t.videoUrl && (() => {
+                      const embedUrl = t.videoUrl.includes('loom.com')
+                        ? t.videoUrl.replace('/share/', '/embed/') + '?autoplay=1'
+                        : t.videoUrl.includes('youtu.be')
+                          ? `https://www.youtube.com/embed/${t.videoUrl.split('youtu.be/')[1]?.split('?')[0]}?autoplay=1`
+                          : t.videoUrl.includes('youtube.com')
+                            ? `https://www.youtube.com/embed/${new URLSearchParams(t.videoUrl.split('?')[1]).get('v')}?autoplay=1`
+                            : null;
+                      return (
+                        <div className="mb-4">
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <Video className="w-3.5 h-3.5" style={{ color: '#3A8DDE' }} />
+                            <span className="text-xs font-medium" style={{ color: '#3A8DDE' }}>Video Testimonial</span>
+                          </div>
+                          {embedUrl ? (
+                            <div className="aspect-video rounded-xl overflow-hidden" style={{ border: '1px solid #DDE5EC' }}>
+                              <iframe width="100%" height="100%" src={embedUrl} frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen />
+                            </div>
+                          ) : (
+                            <a href={t.videoUrl} target="_blank" rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg"
+                              style={{ background: '#eff8ff', color: '#3A8DDE', border: '1px solid #c8dff0' }}>
+                              <ExternalLink className="w-3 h-3" /> Watch Video
+                            </a>
+                          )}
+                        </div>
+                      );
+                    })()}
                     <div className="flex items-center justify-between">
                       <p className="text-xs" style={{ color: '#8A97A3' }}>Submitted {new Date(t.createdAt!).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
                       {t.status === 'pending' && <p className="text-xs" style={{ color: '#f59e0b' }}>Awaiting admin review</p>}

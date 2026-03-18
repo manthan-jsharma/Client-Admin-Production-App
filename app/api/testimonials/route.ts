@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     if (!payload) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
 
     const body = await request.json();
-    const { testimonialText, rating, projectId } = body;
+    const { testimonialText, rating, projectId, videoUrl } = body;
 
     if (!testimonialText?.trim()) {
       return NextResponse.json({ error: 'Testimonial text is required' }, { status: 400 });
@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
       clientName: user.name,
       testimonialText: testimonialText.trim(),
       rating: Number(rating),
+      ...(videoUrl?.trim() ? { videoUrl: videoUrl.trim() } : {}),
       status: 'pending',
     };
 

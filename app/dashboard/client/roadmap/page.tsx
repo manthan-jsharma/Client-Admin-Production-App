@@ -26,8 +26,9 @@ export default function RoadmapPage() {
         const response = await fetch('/api/projects', { headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` } });
         const result = await response.json();
         if (result.success && result.data.length > 0) {
-          setProjects(result.data);
-          setSelectedProjectId(result.data[0]._id ?? null);
+          const aiProjects = result.data.filter((p: any) => p.type === 'ai_saas');
+          setProjects(aiProjects);
+          setSelectedProjectId(aiProjects[0]?._id ?? null);
         }
       } catch (error) { console.error('[roadmap] fetch error:', error); }
       finally { setIsLoading(false); }

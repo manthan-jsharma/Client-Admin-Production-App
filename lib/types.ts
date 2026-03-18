@@ -3,7 +3,7 @@ export interface User {
   _id?: string;
   email: string;
   password?: string;
-  role: 'admin' | 'client';
+  role: 'admin' | 'client' | 'dev';
   name: string;
   phone?: string;
   company?: string;
@@ -48,6 +48,7 @@ export interface Project {
   roadmap: RoadmapItem[];
   dailyProgress: DailyProgress[];
   deliveries: Delivery[];
+  assignedDevs?: string[];
 
   // Division A — AI SaaS
   githubUsername?: string;       // submitted by client
@@ -97,6 +98,8 @@ export interface Delivery {
   adminNotes?: string;
   clientFeedback?: string;
   signedOffAt?: Date;
+  createdByRole?: 'admin' | 'dev';
+  createdById?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -157,7 +160,7 @@ export interface ChatMessage {
   projectId: string;
   senderId: string;
   senderName: string;
-  senderRole: 'admin' | 'client' | 'ai';
+  senderRole: 'admin' | 'client' | 'ai' | 'dev';
   message: string;
   attachments?: ChatAttachment[];
   type: 'text' | 'voice' | 'video' | 'file' | 'ticket';
@@ -223,6 +226,7 @@ export interface Testimonial {
   clientName?: string;
   testimonialText: string;
   rating: number;
+  videoUrl?: string;
   status: 'pending' | 'approved' | 'rejected';
   adminFeedback?: string;
   createdAt?: Date;

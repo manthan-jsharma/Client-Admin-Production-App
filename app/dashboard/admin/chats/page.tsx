@@ -7,7 +7,7 @@ import Link from 'next/link';
 import {
   MessageSquare, Send, ShieldCheck, Sparkles, Paperclip,
   CheckCheck, Check, Bug, Zap, FolderKanban, Clock,
-  Mic, Video, FileText, X, AlertTriangle, Circle, ExternalLink,
+  Mic, Video, FileText, X, AlertTriangle, Circle, ExternalLink, ArrowLeft,
 } from 'lucide-react';
 import { ChatMessage, ChatAttachment } from '@/lib/types';
 import { useAuth } from '@/lib/auth-context';
@@ -23,7 +23,7 @@ interface ChatThread {
   lastMessage: {
     message: string;
     senderName: string;
-    senderRole: 'admin' | 'client' | 'ai';
+    senderRole: 'admin' | 'client' | 'ai' | 'dev';
     createdAt: Date;
   } | null;
   projectStatus: string;
@@ -101,9 +101,16 @@ function MessageRow({ msg, adminId }: { msg: ChatMessage; adminId: string }) {
               ? { background: '#f5f3ff', border: '1px solid #ddd6fe', color: '#6d28d9', borderBottomLeftRadius: '4px' }
               : { background: '#f1f5f9', color: '#334155', borderBottomLeftRadius: '4px' }}
           >
-            {msg.message.split(/(@AI\b)/gi).map((part, i) =>
-              /^@AI$/i.test(part) ? <span key={i} className="font-semibold" style={{ color: '#8b5cf6' }}>{part}</span> : part
-            )}
+            {msg.message.split(/(@\w+)/g).map((part, i) => {
+              if (!part.startsWith('@')) return part;
+              const lower = part.toLowerCase();
+              if (isOwn) {
+                // On blue bubble — use white tinted pills for readability
+                return <span key={i} style={{ color: 'rgba(255,255,255,0.95)', fontWeight: 700, background: 'rgba(255,255,255,0.2)', borderRadius: 4, padding: '1px 5px' }}>{part}</span>;
+              }
+              const color = lower === '@ai' ? '#8b5cf6' : lower === '@client' ? '#f59e0b' : lower === '@dev' ? '#16a34a' : '#3A8DDE';
+              return <span key={i} style={{ color, fontWeight: 700, background: `${color}18`, borderRadius: 4, padding: '1px 4px' }}>{part}</span>;
+            })}
           </div>
         )}
 
@@ -140,6 +147,7 @@ export default function AdminChatsPage() {
   const { user } = useAuth();
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [selectedThread, setSelectedThread] = useState<ChatThread | null>(null);
+  const [showThreads, setShowThreads] = useState(true); // mobile: toggle between sidebar and chat
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoadingThreads, setIsLoadingThreads] = useState(true);
@@ -391,7 +399,14 @@ export default function AdminChatsPage() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Thread sidebar */}
-        <div className="w-72 flex-shrink-0 overflow-y-auto" style={{ borderRight: '1px solid #DDE5EC', background: 'rgba(58,141,222,0.06)' }}>
+        <div
+          className={`flex-shrink-0 overflow-y-auto w-full lg:w-72 ${showThreads ? 'flex' : 'hidden'} lg:flex flex-col`}
+          style={{ borderRight: '1px solid #DDE5EC', background: 'rgba(58,141,222,0.06)' }}
+        >
+          {/* mobile header */}
+          <div className="lg:hidden px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid #DDE5EC' }}>
+            <p className="text-xs font-semibold" style={{ color: '#8A97A3' }}>SELECT A CONVERSATION</p>
+          </div>
           {isLoadingThreads ? (
             <div className="flex justify-center pt-10">
               <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: 'rgba(58,141,222,0.2)', borderTopColor: '#3A8DDE' }} />
@@ -408,7 +423,7 @@ export default function AdminChatsPage() {
                 return (
                   <button
                     key={thread.projectId}
-                    onClick={() => setSelectedThread(thread)}
+                    onClick={() => { setSelectedThread(thread); setShowThreads(false); }}
                     className="w-full text-left p-3 rounded-xl transition-all"
                     style={isSelected
                       ? { background: '#eff8ff', border: '1px solid #c8dff0' }
@@ -457,9 +472,17 @@ export default function AdminChatsPage() {
 
         {/* Message panel */}
         {selectedThread ? (
-          <div className="flex-1 flex flex-col overflow-hidden" style={{ background: '#ffffff' }}>
+          <div className={`flex-1 flex-col overflow-hidden ${showThreads ? 'hidden lg:flex' : 'flex'}`} style={{ background: '#ffffff' }}>
             {/* Chat header */}
-            <div className="px-6 py-3.5 flex items-center gap-3" style={{ borderBottom: '1px solid #DDE5EC', background: '#fafcff' }}>
+            <div className="px-4 lg:px-6 py-3.5 flex items-center gap-3" style={{ borderBottom: '1px solid #DDE5EC', background: '#fafcff' }}>
+              {/* Back button — mobile only */}
+              <button
+                className="lg:hidden flex-shrink-0 p-1.5 rounded-lg mr-1"
+                style={{ color: '#5F6B76', background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC' }}
+                onClick={() => setShowThreads(true)}
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
               <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' }}>
                 {selectedThread.clientAvatar
                   ? <img src={selectedThread.clientAvatar} alt={selectedThread.clientName} className="w-9 h-9 rounded-full object-cover" />
@@ -586,7 +609,7 @@ export default function AdminChatsPage() {
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center" style={{ background: 'rgba(58,141,222,0.06)' }}>
+          <div className={`flex-1 items-center justify-center ${showThreads ? 'hidden lg:flex' : 'flex'}`} style={{ background: 'rgba(58,141,222,0.06)' }}>
             <div className="text-center">
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: '#f1f5f9', border: '1px solid #DDE5EC' }}>
                 <MessageSquare className="w-8 h-8" style={{ color: '#8A97A3' }} />

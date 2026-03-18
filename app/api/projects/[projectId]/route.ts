@@ -21,6 +21,9 @@ export async function GET(
     if (decoded.role === 'client' && project.clientId !== decoded.userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+    if (decoded.role === 'dev' && !project.assignedDevs?.includes(decoded.userId)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     return NextResponse.json({ success: true, data: project });
   } catch (error) {

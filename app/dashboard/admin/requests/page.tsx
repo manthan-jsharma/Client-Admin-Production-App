@@ -20,7 +20,7 @@ const CARD = {
   borderRadius: 16,
 };
 
-const typeConfig: Record<Ticket['type'], { label: string; icon: React.ComponentType<{ className?: string }>; color: string; bg: string; border: string }> = {
+const typeConfig: Record<Ticket['type'], { label: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; color: string; bg: string; border: string }> = {
   support:         { label: 'Support',  icon: HeadphonesIcon, color: '#6BCF7A', bg: 'rgba(107,207,122,0.1)', border: '#a7f3d0' },
   feature_request: { label: 'Feature',  icon: Megaphone,      color: '#3A8DDE', bg: '#eff8ff', border: '#c8dff0' },
   bug:             { label: 'Bug',      icon: Bug,            color: '#ef4444', bg: '#fff1f2', border: '#fecaca' },
@@ -28,7 +28,7 @@ const typeConfig: Record<Ticket['type'], { label: string; icon: React.ComponentT
   general:         { label: 'General',  icon: MessageSquare,  color: '#5F6B76', bg: 'rgba(58,141,222,0.06)', border: '#DDE5EC' },
 };
 
-const statusConfig: Record<Ticket['status'], { label: string; color: string; bg: string; border: string; icon: React.ComponentType<{ className?: string }> }> = {
+const statusConfig: Record<Ticket['status'], { label: string; color: string; bg: string; border: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }> }> = {
   open:        { label: 'Open',        color: '#f59e0b', bg: '#fffbeb', border: '#fde68a', icon: Clock },
   in_progress: { label: 'In Progress', color: '#3A8DDE', bg: '#eff8ff', border: '#c8dff0', icon: RefreshCw },
   resolved:    { label: 'Resolved',    color: '#6BCF7A', bg: 'rgba(107,207,122,0.1)', border: '#a7f3d0', icon: CheckCircle2 },

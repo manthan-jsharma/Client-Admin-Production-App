@@ -16,7 +16,8 @@ import { Resend } from "resend";
 
 // const resend = new Resend(process.env.RESEND_API_KEY);
 
-const FROM = process.env.RESEND_FROM_EMAIL || "AI APP LABS <noreply@buildhub.app>";
+const FROM =
+  process.env.RESEND_FROM_EMAIL || "AI APP LABS <noreply@buildhub.app>";
 const ADMIN = process.env.ADMIN_EMAIL || "admin@example.com";
 const APP = (
   process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
@@ -194,7 +195,7 @@ export async function sendAccountApproved(client: {
     ${para(
       "Log in now to view your projects, chat with your team, and track progress."
     )}
-    ${btn(`${APP}/dashboard/client`, "Open My Dashboard")}
+    ${btn(`${APP}/login`, "Log In Now")}
   `
   );
   await send(client.email, "Your AI APP LABS account has been approved", html);
@@ -224,321 +225,9 @@ export async function sendAccountRejected(
     )}
   `
   );
-  await send(client.email, "Update on your AI APP LABS account application", html);
-}
-
-// ─── 4. New Chat Message ──────────────────────────────────────────────────────
-
-export async function sendNewChatMessage(params: {
-  recipientEmail: string;
-  recipientName: string;
-  senderName: string;
-  senderRole: "admin" | "client";
-  projectName: string;
-  messagePreview: string;
-  projectId: string;
-}) {
-  const dashPath =
-    params.senderRole === "client"
-      ? `/dashboard/admin/chats?projectId=${params.projectId}`
-      : `/dashboard/client/chat`;
-
-  const html = wrap(
-    "New Chat Message",
-    `
-    ${heading("New message received")}
-    ${para(
-      `<strong>${params.senderName}</strong> sent a message in <strong>${params.projectName}</strong>:`
-    )}
-    <div style="background:#f8fafc;border-left:4px solid #3b82f6;border-radius:0 8px 8px 0;padding:14px 18px;margin:16px 0;">
-      <p style="color:#334155;font-size:14px;margin:0;line-height:1.6;font-style:italic;">"${
-        params.messagePreview.length > 200
-          ? params.messagePreview.slice(0, 200) + "…"
-          : params.messagePreview
-      }"</p>
-    </div>
-    ${btn(`${APP}${dashPath}`, "Reply in Chat")}
-  `
-  );
   await send(
-    params.recipientEmail,
-    `New message from ${params.senderName} · ${params.projectName}`,
-    html
-  );
-}
-
-// ─── 5. Delivery Card Created ─────────────────────────────────────────────────
-
-export async function sendDeliveryCreated(params: {
-  clientEmail: string;
-  clientName: string;
-  projectName: string;
-  deliveryNumber: number;
-  deliveryTitle: string;
-  projectId: string;
-}) {
-  const html = wrap(
-    "New Delivery Ready for Review",
-    `
-    ${heading(`D${params.deliveryNumber}: ${params.deliveryTitle}`)}
-    ${para(
-      `Hi ${params.clientName}, your admin has submitted a new delivery for <strong>${params.projectName}</strong> and it's ready for your review.`
-    )}
-    ${detailTable(
-      detail("Project", params.projectName) +
-        detail(
-          "Delivery",
-          `D${params.deliveryNumber} — ${params.deliveryTitle}`
-        ) +
-        detail("Action Required", "Review and sign off")
-    )}
-    ${infoBox(
-      "Please review the delivery and either <strong>approve & sign off</strong> or <strong>request a revision</strong>.",
-      "#eff6ff",
-      "#bfdbfe",
-      "#1e40af"
-    )}
-    ${btn(
-      `${APP}/dashboard/client/${params.projectId}?tab=deliveries`,
-      "Review Delivery"
-    )}
-  `
-  );
-  await send(
-    params.clientEmail,
-    `Delivery D${params.deliveryNumber} ready for review — ${params.projectName}`,
-    html
-  );
-}
-
-// ─── 6. Delivery Approved (client signed off) ────────────────────────────────
-
-export async function sendDeliveryApproved(params: {
-  projectName: string;
-  deliveryNumber: number;
-  deliveryTitle: string;
-  clientName: string;
-  clientFeedback?: string;
-}) {
-  const html = wrap(
-    "Delivery Signed Off",
-    `
-    ${heading(`D${params.deliveryNumber} approved by client`)}
-    ${para(
-      `<strong>${params.clientName}</strong> has reviewed and approved <strong>D${params.deliveryNumber}: ${params.deliveryTitle}</strong> for <strong>${params.projectName}</strong>.`
-    )}
-    ${
-      params.clientFeedback
-        ? infoBox(
-            `<strong>Client feedback:</strong><br/>"${params.clientFeedback}"`,
-            "#f0fdf4",
-            "#bbf7d0",
-            "#166534"
-          )
-        : ""
-    }
-    ${btn(`${APP}/dashboard/admin/projects`, "View Project", "#0f172a")}
-  `
-  );
-  await send(
-    ADMIN,
-    `D${params.deliveryNumber} signed off — ${params.projectName}`,
-    html
-  );
-}
-
-// ─── 7. Delivery Revision Requested ──────────────────────────────────────────
-
-export async function sendDeliveryRevisionRequested(params: {
-  projectName: string;
-  deliveryNumber: number;
-  deliveryTitle: string;
-  clientName: string;
-  clientFeedback?: string;
-}) {
-  const html = wrap(
-    "Revision Requested",
-    `
-    ${heading(`Revision requested on D${params.deliveryNumber}`)}
-    ${para(
-      `<strong>${params.clientName}</strong> has requested a revision on <strong>D${params.deliveryNumber}: ${params.deliveryTitle}</strong> for <strong>${params.projectName}</strong>.`
-    )}
-    ${
-      params.clientFeedback
-        ? infoBox(
-            `<strong>Client feedback:</strong><br/>"${params.clientFeedback}"`,
-            "#fff7ed",
-            "#fed7aa",
-            "#9a3412"
-          )
-        : ""
-    }
-    ${btn(`${APP}/dashboard/admin/projects`, "View Project", "#0f172a")}
-  `
-  );
-  await send(
-    ADMIN,
-    `Revision requested on D${params.deliveryNumber} — ${params.projectName}`,
-    html
-  );
-}
-
-// ─── 8. Daily Progress Updated ───────────────────────────────────────────────
-
-export async function sendDailyProgressUpdated(params: {
-  clientEmail: string;
-  clientName: string;
-  projectName: string;
-  day: number;
-  dayTitle: string;
-  videoUrl?: string;
-  projectId: string;
-}) {
-  const html = wrap(
-    "Daily Progress Update",
-    `
-    ${heading(`Day ${params.day} complete — ${params.projectName}`)}
-    ${para(
-      `Hi ${params.clientName}, your admin has completed <strong>Day ${params.day}: ${params.dayTitle}</strong> on <strong>${params.projectName}</strong>.`
-    )}
-    ${
-      params.videoUrl
-        ? infoBox(
-            `<strong>Progress video available.</strong><br/>Log in to watch the day ${params.day} progress update from your admin.`,
-            "#eff6ff",
-            "#bfdbfe",
-            "#1e40af"
-          )
-        : infoBox(
-            `Day ${params.day} has been marked complete. Log in to view the latest project status.`
-          )
-    }
-    ${btn(
-      `${APP}/dashboard/client/${params.projectId}?tab=roadmap`,
-      "View Roadmap"
-    )}
-  `
-  );
-  await send(
-    params.clientEmail,
-    `Day ${params.day} complete — ${params.projectName}`,
-    html
-  );
-}
-
-// ─── 9. Ticket Submitted ─────────────────────────────────────────────────────
-
-export async function sendTicketSubmitted(params: {
-  clientName: string;
-  clientEmail: string;
-  subject: string;
-  type: string;
-  description: string;
-  priority: string;
-  ticketId: string;
-}) {
-  // Confirm to client
-  const clientHtml = wrap(
-    "Ticket Received",
-    `
-    ${heading("Your ticket has been received")}
-    ${para(
-      `Hi ${params.clientName}, we've received your support ticket and will respond as soon as possible.`
-    )}
-    ${detailTable(
-      detail("Subject", params.subject) +
-        detail("Type", params.type.replace("_", " ")) +
-        detail("Priority", params.priority) +
-        detail("Status", "Open")
-    )}
-    ${para(
-      "You'll receive an email when the status is updated or when a response is added."
-    )}
-  `
-  );
-  await send(
-    params.clientEmail,
-    `Ticket received: ${params.subject}`,
-    clientHtml
-  );
-
-  // Notify admin
-  const adminHtml = wrap(
-    "New Support Ticket",
-    `
-    ${heading("New ticket submitted")}
-    ${para(
-      `<strong>${params.clientName}</strong> has submitted a new support ticket.`
-    )}
-    ${detailTable(
-      detail("Subject", params.subject) +
-        detail("Client", `${params.clientName} (${params.clientEmail})`) +
-        detail("Type", params.type.replace("_", " ")) +
-        detail("Priority", params.priority)
-    )}
-    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 18px;margin:20px 0;">
-      <p style="color:#64748b;font-size:12px;margin:0 0 6px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Description</p>
-      <p style="color:#334155;font-size:14px;margin:0;line-height:1.6;">${
-        params.description
-      }</p>
-    </div>
-    ${btn(`${APP}/dashboard/admin/requests`, "View Ticket", "#0f172a")}
-  `
-  );
-  await send(
-    ADMIN,
-    `New ticket: ${params.subject} (${params.type})`,
-    adminHtml
-  );
-}
-
-// ─── 10. Ticket Status Changed ───────────────────────────────────────────────
-
-export async function sendTicketStatusChanged(params: {
-  clientEmail: string;
-  clientName: string;
-  subject: string;
-  newStatus: string;
-  adminResponse?: string;
-  ticketId: string;
-}) {
-  const statusLabel: Record<string, string> = {
-    open: "Open",
-    in_progress: "In Progress",
-    resolved: "Resolved",
-    closed: "Closed",
-  };
-
-  const html = wrap(
-    "Ticket Update",
-    `
-    ${heading(`Ticket Update: ${params.subject}`)}
-    ${para(
-      `Hi ${params.clientName}, the status of your ticket has been updated.`
-    )}
-    ${detailTable(
-      detail("Subject", params.subject) +
-        detail("New Status", statusLabel[params.newStatus] ?? params.newStatus)
-    )}
-    ${
-      params.adminResponse
-        ? `${divider()}
-         <p style="color:#64748b;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px;">Admin Response</p>
-         <div style="background:#f8fafc;border-left:4px solid #3b82f6;border-radius:0 8px 8px 0;padding:14px 18px;">
-           <p style="color:#334155;font-size:14px;margin:0;line-height:1.6;">${
-             params.adminResponse
-           }</p>
-         </div>`
-        : ""
-    }
-    ${btn(`${APP}/dashboard/client/chat`, "Open Chat for Questions")}
-  `
-  );
-  await send(
-    params.clientEmail,
-    `Ticket update: ${params.subject} — ${
-      statusLabel[params.newStatus] ?? params.newStatus
-    }`,
+    client.email,
+    "Update on your AI APP LABS account application",
     html
   );
 }
@@ -739,10 +428,15 @@ export async function sendMaintenanceSubmitted(params: {
     "New maintenance feedback",
     `
     ${heading("New maintenance feedback received")}
-    ${para(`<strong>${params.clientName}</strong> has submitted a new maintenance feedback.`)}
+    ${para(
+      `<strong>${params.clientName}</strong> has submitted a new maintenance feedback.`
+    )}
     ${infoBox(
-      `<em style="color:#374151;">"${params.message.slice(0, 300)}${params.message.length > 300 ? '…' : ''}"</em>`,
-      "#f0fdf4", "#166534"
+      `<em style="color:#374151;">"${params.message.slice(0, 300)}${
+        params.message.length > 300 ? "…" : ""
+      }"</em>`,
+      "#f0fdf4",
+      "#166534"
     )}
     ${btn(`${APP}/dashboard/admin/maintenance`, "View & Respond", "#0f172a")}
     `
@@ -763,17 +457,60 @@ export async function sendMaintenanceResponse(params: {
     "Response to your maintenance feedback",
     `
     ${heading("We've responded to your feedback")}
-    ${para(`Hi ${params.clientName}, our team has replied to your maintenance submission.`)}
+    ${para(
+      `Hi ${params.clientName}, our team has replied to your maintenance submission.`
+    )}
     ${detailTable(
-      detail("Your message", params.originalMessage.slice(0, 200) + (params.originalMessage.length > 200 ? '…' : '')) +
-      detail("Status", params.status.charAt(0).toUpperCase() + params.status.slice(1))
+      detail(
+        "Your message",
+        params.originalMessage.slice(0, 200) +
+          (params.originalMessage.length > 200 ? "…" : "")
+      ) +
+        detail(
+          "Status",
+          params.status.charAt(0).toUpperCase() + params.status.slice(1)
+        )
     )}
     ${infoBox(
       `<strong>Team response:</strong><br/>${params.adminResponse}`,
-      "#eff6ff", "#1e40af"
+      "#eff6ff",
+      "#1e40af"
     )}
     ${btn(`${APP}/dashboard/client/maintenance`, "View in Dashboard")}
     `
   );
   await send(params.clientEmail, "Response to your maintenance feedback", html);
+}
+
+// ─── 16. Dev Account Created ──────────────────────────────────────────────────
+
+export async function sendDevAccountCreated(dev: {
+  name: string;
+  email: string;
+  password: string;
+}) {
+  const html = wrap(
+    "Your Developer Account is Ready",
+    `
+    ${heading(`Welcome to the team, ${dev.name}!`)}
+    ${para(
+      "Your developer account on <strong>AI APP LABS</strong> has been created by the admin. You can log in immediately using the credentials below."
+    )}
+    ${detailTable(
+      detail("Email", dev.email) +
+        detail(
+          "Password",
+          `<code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:13px;">${dev.password}</code>`
+        )
+    )}
+    ${infoBox(
+      "For security, please change your password after your first login.",
+      "#fffbeb",
+      "#fde68a",
+      "#92400e"
+    )}
+    ${btn(`${APP}/login`, "Log In to Developer Portal")}
+  `
+  );
+  await send(dev.email, "Your AI APP LABS developer account is ready", html);
 }

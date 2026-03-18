@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getTicketsByClientId, createTicket, getUserById } from '@/lib/db';
 import { verifyToken, extractToken } from '@/lib/auth';
 import { Ticket } from '@/lib/types';
-import { sendTicketSubmitted } from '@/lib/email';
 import { tgAdminNewTicket } from '@/lib/telegram';
 
 export async function GET(request: NextRequest) {
@@ -56,15 +55,6 @@ export async function POST(request: NextRequest) {
 
     const created = await createTicket(ticket);
 
-    sendTicketSubmitted({
-      clientName: user.name,
-      clientEmail: user.email,
-      subject: created.subject,
-      type: created.type,
-      description: created.description,
-      priority: created.priority,
-      ticketId: created._id!,
-    });
     void tgAdminNewTicket({
       clientName: user.name,
       subject: created.subject,

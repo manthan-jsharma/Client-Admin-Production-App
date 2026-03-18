@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Testimonial } from '@/lib/types';
 import {
   Star, CheckCircle2, Clock, XCircle, AlertCircle,
-  ThumbsUp, ThumbsDown, Filter, MessageSquare,
+  ThumbsUp, ThumbsDown, Filter, MessageSquare, Video, ExternalLink,
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -192,6 +192,36 @@ export default function AdminTestimonialsPage() {
                     <blockquote className="text-sm leading-relaxed italic pl-4 mb-3" style={{ color: '#334155', borderLeft: '2px solid #c8dff0' }}>
                       &quot;{t.testimonialText}&quot;
                     </blockquote>
+                    {t.videoUrl && (() => {
+                      const embedUrl = t.videoUrl.includes('loom.com')
+                        ? t.videoUrl.replace('/share/', '/embed/') + '?autoplay=1'
+                        : t.videoUrl.includes('youtu.be')
+                          ? `https://www.youtube.com/embed/${t.videoUrl.split('youtu.be/')[1]?.split('?')[0]}?autoplay=1`
+                          : t.videoUrl.includes('youtube.com')
+                            ? `https://www.youtube.com/embed/${new URLSearchParams(t.videoUrl.split('?')[1]).get('v')}?autoplay=1`
+                            : null;
+                      return (
+                        <div className="mb-3">
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <Video className="w-3.5 h-3.5" style={{ color: '#3A8DDE' }} />
+                            <span className="text-xs font-medium" style={{ color: '#3A8DDE' }}>Video Testimonial</span>
+                          </div>
+                          {embedUrl ? (
+                            <div className="aspect-video rounded-xl overflow-hidden" style={{ border: '1px solid #DDE5EC' }}>
+                              <iframe width="100%" height="100%" src={embedUrl} frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen />
+                            </div>
+                          ) : (
+                            <a href={t.videoUrl} target="_blank" rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg"
+                              style={{ background: '#eff8ff', color: '#3A8DDE', border: '1px solid #c8dff0' }}>
+                              <ExternalLink className="w-3 h-3" /> Watch Video
+                            </a>
+                          )}
+                        </div>
+                      );
+                    })()}
                     <p className="text-xs mb-4" style={{ color: '#8A97A3' }}>Submitted {new Date(t.createdAt!).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
 
                     {t.adminFeedback && (

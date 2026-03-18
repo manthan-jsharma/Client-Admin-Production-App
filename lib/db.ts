@@ -21,7 +21,7 @@ function mapUser(row: Record<string, unknown>): User {
     _id: row.id as string,
     email: row.email as string,
     password: n(row.password as string | null),
-    role: row.role as 'admin' | 'client',
+    role: row.role as 'admin' | 'client' | 'dev',
     name: row.name as string,
     phone: n(row.phone as string | null),
     company: n(row.company as string | null),
@@ -68,6 +68,8 @@ function mapDelivery(row: Record<string, unknown>): Delivery {
     adminNotes: n(row.admin_notes as string | null),
     clientFeedback: n(row.client_feedback as string | null),
     signedOffAt: row.signed_off_at ? new Date(row.signed_off_at as string) : undefined,
+    createdByRole: n(row.created_by_role as string | null) as Delivery['createdByRole'],
+    createdById: n(row.created_by_id as string | null),
     createdAt: row.created_at ? new Date(row.created_at as string) : undefined,
     updatedAt: row.updated_at ? new Date(row.updated_at as string) : undefined,
   };
@@ -112,6 +114,7 @@ function mapProject(row: Record<string, unknown>): Project {
     domainName: n(row.domain_name as string | null),
     designPreferences: n(row.design_preferences as string | null),
     logoS3Key: n(row.logo_s3_key as string | null),
+    assignedDevs: (row.assigned_devs as string[] | null) ?? [],
     createdAt: row.created_at ? new Date(row.created_at as string) : undefined,
     updatedAt: row.updated_at ? new Date(row.updated_at as string) : undefined,
   };
@@ -153,7 +156,7 @@ function mapMessage(row: Record<string, unknown>): ChatMessage {
     projectId: row.project_id as string,
     senderId: row.sender_id as string,
     senderName: row.sender_name as string,
-    senderRole: row.sender_role as 'admin' | 'client' | 'ai',
+    senderRole: row.sender_role as 'admin' | 'client' | 'ai' | 'dev',
     message: row.message as string,
     attachments: n(row.attachments as ChatMessage['attachments'] | null),
     type: row.type as ChatMessage['type'],
@@ -308,6 +311,7 @@ function toProjectUpdateRow(p: Partial<Project>): Record<string, unknown> {
   if (p.domainName !== undefined) row.domain_name = p.domainName ?? null;
   if (p.designPreferences !== undefined) row.design_preferences = p.designPreferences ?? null;
   if (p.logoS3Key !== undefined) row.logo_s3_key = p.logoS3Key ?? null;
+  if (p.assignedDevs !== undefined) row.assigned_devs = p.assignedDevs ?? undefined;
   row.updated_at = new Date().toISOString();
   return row;
 }
@@ -601,6 +605,16 @@ export async function getUserByTelegramToken(token: string): Promise<User | null
 const PROJECT_SELECT = '*, roadmap_items(*), deliveries(*)';
 
 export async function getProjectsByUserId(userId: string, role: string): Promise<Project[]> {
+  if (role === 'dev') {
+    const { data, error } = await supabase
+      .from('projects')
+      .select(PROJECT_SELECT)
+      .filter('assigned_devs', 'cs', `{${userId}}`)
+      .order('created_at', { ascending: false });
+    if (error || !data) return [];
+    return (data as Record<string, unknown>[]).map(mapProject);
+  }
+
   const column = role === 'admin' ? 'admin_id' : 'client_id';
   const { data, error } = await supabase
     .from('projects')
@@ -1316,6 +1330,8 @@ export async function createDelivery(delivery: Delivery): Promise<Delivery> {
     admin_notes: delivery.adminNotes ?? null,
     client_feedback: delivery.clientFeedback ?? null,
     signed_off_at: delivery.signedOffAt ? new Date(delivery.signedOffAt).toISOString() : null,
+    created_by_role: delivery.createdByRole ?? 'admin',
+    created_by_id: delivery.createdById ?? null,
   };
 
   const { data, error } = await supabase
@@ -1557,4 +1573,47 @@ export async function updateMaintenanceFeedback(
 
   if (error || !data) return null;
   return mapMaintenanceFeedback(data as Record<string, unknown>);
+}
+
+// ─── Dev Operations ───────────────────────────────────────────────────────────
+
+export async function getAllDevs(): Promise<User[]> {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('role', 'dev')
+    .order('created_at', { ascending: false });
+
+  if (error || !data) return [];
+  return (data as Record<string, unknown>[]).map(mapUser);
+}
+
+export async function assignDevToProject(projectId: string, devId: string): Promise<boolean> {
+  const project = await getProjectById(projectId);
+  if (!project) return false;
+
+  const current = project.assignedDevs ?? [];
+  if (current.includes(devId)) return true;
+
+  const { error } = await supabase
+    .from('projects')
+    .update({ assigned_devs: [...current, devId], updated_at: new Date().toISOString() })
+    .eq('id', projectId);
+
+  return !error;
+}
+
+export async function removeDevFromProject(projectId: string, devId: string): Promise<boolean> {
+  const project = await getProjectById(projectId);
+  if (!project) return false;
+
+  const current = project.assignedDevs ?? [];
+  const updated = current.filter(id => id !== devId);
+
+  const { error } = await supabase
+    .from('projects')
+    .update({ assigned_devs: updated, updated_at: new Date().toISOString() })
+    .eq('id', projectId);
+
+  return !error;
 }

@@ -9,7 +9,7 @@
  * Messages use HTML parse mode. All sends are non-fatal.
  */
 
-import { getAllUsers, getUserById } from '@/lib/db';
+import { getAllUsers, getUserById, getProjectMessages } from '@/lib/db';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const APP = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
@@ -272,4 +272,86 @@ export async function tgAdminNewServiceInquiry(params: {
     link('Open chat →', `${APP}/dashboard/admin/chats`),
   ].join('\n');
   await notifyAllAdmins(text);
+}
+
+/** Admin: dev submitted a delivery for review */
+export async function tgDevDeliverySubmitted(params: {
+  devName: string;
+  projectName: string;
+  deliveryTitle: string;
+  deliveryNumber: number;
+  projectId: string;
+}): Promise<void> {
+  const text = [
+    `🔔 ${bold('Dev delivery ready for review')}`,
+    `Project: ${bold(params.projectName)}`,
+    `Developer: ${params.devName}`,
+    `Delivery: D${params.deliveryNumber} — ${params.deliveryTitle}`,
+    link('Review now →', `${APP}/dashboard/admin/projects/${params.projectId}`),
+  ].join('\n');
+  await notifyAllAdmins(text);
+}
+
+/** Notify a user when they are @mentioned in chat */
+export async function tgMentionNotify(params: {
+  mentionedUserId: string;
+  mentionedHandle: string; // e.g. '@dev'
+  mentionedRole: string;
+  senderName: string;
+  projectName: string;
+  messagePreview: string;
+  projectId: string;
+}): Promise<void> {
+  const chatPath = params.mentionedRole === 'admin'
+    ? '/dashboard/admin/chats'
+    : params.mentionedRole === 'dev'
+    ? '/dashboard/dev/chat'
+    : '/dashboard/client/chat';
+  const preview = params.messagePreview.length > 80 ? params.messagePreview.slice(0, 80) + '…' : params.messagePreview;
+  const text = [
+    `🏷 ${bold(params.senderName)} mentioned ${params.mentionedHandle} in ${bold(params.projectName)}`,
+    `"${preview}"`,
+    link('Open chat →', `${APP}${chatPath}`),
+  ].join('\n');
+  await notifyUser(params.mentionedUserId, text);
+}
+
+/**
+ * Notify about a new chat message — throttled.
+ * Skips the notification if the recipient sent a message in this project
+ * within the last IDLE_MINUTES minutes (they are actively in the chat).
+ */
+const IDLE_MINUTES = 5;
+
+export async function tgChatMessage(params: {
+  projectId: string;
+  projectName: string;
+  senderName: string;
+  senderRole: 'admin' | 'client' | 'dev';
+  recipientId: string;    // userId of the person who should be notified
+  messagePreview: string;
+}): Promise<void> {
+  // Check if the recipient has been active recently → skip if so
+  const recentMessages = await getProjectMessages(params.projectId, 20);
+  const cutoff = Date.now() - IDLE_MINUTES * 60 * 1000;
+  const recipientActive = recentMessages.some(
+    m => m.senderId === params.recipientId && new Date(m.createdAt).getTime() > cutoff
+  );
+  if (recipientActive) return; // they're in the chat — don't ping
+
+  const preview = params.messagePreview.length > 80
+    ? params.messagePreview.slice(0, 80) + '…'
+    : params.messagePreview;
+
+  const roleLabel = params.senderRole === 'admin' ? 'Admin' : params.senderRole === 'dev' ? 'Developer' : 'Client';
+  const chatPath = params.senderRole === 'admin' ? '/dashboard/client/chat' : '/dashboard/admin/chats';
+
+  const text = [
+    `💬 ${bold('New message')} in ${bold(params.projectName)}`,
+    `${roleLabel}: ${params.senderName}`,
+    `"${preview}"`,
+    link('Open chat →', `${APP}${chatPath}`),
+  ].join('\n');
+
+  await notifyUser(params.recipientId, text);
 }

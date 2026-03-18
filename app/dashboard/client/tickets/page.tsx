@@ -19,7 +19,7 @@ const CARD = {
   boxShadow: '0 4px 24px rgba(30,40,60,0.08), inset 0 1px 0 rgba(255,255,255,0.85)',
 };
 
-const TYPE_CONFIG: Record<Ticket['type'], { label: string; icon: React.ComponentType<{ className?: string }>; badgeStyle: React.CSSProperties; bgStyle: React.CSSProperties; iconColor: string }> = {
+const TYPE_CONFIG: Record<Ticket['type'], { label: string; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; badgeStyle: React.CSSProperties; bgStyle: React.CSSProperties; iconColor: string }> = {
   support:         { label: 'Support',         icon: HeadphonesIcon, badgeStyle: { background: 'rgba(107,207,122,0.1)', color: '#6BCF7A', border: '1px solid #a7f3d0' },   bgStyle: { background: 'rgba(107,207,122,0.1)' }, iconColor: '#6BCF7A' },
   feature_request: { label: 'Feature Request', icon: Zap,            badgeStyle: { background: '#eff8ff', color: '#3A8DDE', border: '1px solid #c8dff0' },   bgStyle: { background: '#eff8ff' }, iconColor: '#3A8DDE' },
   bug:             { label: 'Bug Report',      icon: Bug,            badgeStyle: { background: '#fff1f2', color: '#ef4444', border: '1px solid #fecaca' },   bgStyle: { background: '#fff1f2' }, iconColor: '#ef4444' },
@@ -27,7 +27,7 @@ const TYPE_CONFIG: Record<Ticket['type'], { label: string; icon: React.Component
   general:         { label: 'General',         icon: MessageSquare,  badgeStyle: { background: 'rgba(58,141,222,0.06)', color: '#5F6B76', border: '1px solid #DDE5EC' },   bgStyle: { background: 'rgba(58,141,222,0.06)' }, iconColor: '#5F6B76' },
 };
 
-const STATUS_CONFIG: Record<Ticket['status'], { label: string; badgeStyle: React.CSSProperties; icon: React.ComponentType<{ className?: string }> }> = {
+const STATUS_CONFIG: Record<Ticket['status'], { label: string; badgeStyle: React.CSSProperties; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }> }> = {
   open:        { label: 'Open',        badgeStyle: { background: '#fffbeb', color: '#f59e0b', border: '1px solid #fde68a' },    icon: Clock },
   in_progress: { label: 'In Progress', badgeStyle: { background: '#eff8ff', color: '#3A8DDE', border: '1px solid #c8dff0' },    icon: RefreshCw },
   resolved:    { label: 'Resolved',    badgeStyle: { background: 'rgba(107,207,122,0.1)', color: '#6BCF7A', border: '1px solid #a7f3d0' },    icon: CheckCircle2 },

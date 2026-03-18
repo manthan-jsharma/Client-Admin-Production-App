@@ -10,7 +10,7 @@ import {
   MessageSquare, Users, ClipboardList, BarChart3, LogOut,
   UserCircle, ShieldCheck, Package, GitBranch, Star, Target,
   Wrench, LifeBuoy, SlidersHorizontal, ChevronsLeft, ChevronsRight,
-  Search, X,
+  Search, X, Code2,
 } from 'lucide-react';
 
 type BadgeKey = 'pendingClients' | 'openTickets' | 'unreadMessages';
@@ -63,6 +63,16 @@ const clientMenuGroups: MenuGroup[] = [
   },
 ];
 
+const devMenuGroups: MenuGroup[] = [
+  {
+    label: 'Work',
+    items: [
+      { href: '/dashboard/dev',       label: 'My Projects', icon: FolderKanban },
+      { href: '/dashboard/dev/chat',  label: 'Chat',        icon: MessageSquare },
+    ],
+  },
+];
+
 const adminMenuGroups: MenuGroup[] = [
   {
     label: 'Main',
@@ -76,10 +86,11 @@ const adminMenuGroups: MenuGroup[] = [
   {
     label: 'Manage',
     items: [
-      { href: '/dashboard/admin/requests',  label: 'Tickets',  icon: ClipboardList, badgeKey: 'openTickets' },
-      { href: '/dashboard/admin/chats',     label: 'Chats',    icon: MessageSquare, badgeKey: 'unreadMessages' },
-      { href: '/dashboard/admin/payments',  label: 'Payments', icon: CreditCard },
-      { href: '/dashboard/admin/services',  label: 'Services', icon: Package },
+      { href: '/dashboard/admin/requests',  label: 'Tickets',    icon: ClipboardList, badgeKey: 'openTickets' },
+      { href: '/dashboard/admin/chats',     label: 'Chats',      icon: MessageSquare, badgeKey: 'unreadMessages' },
+      { href: '/dashboard/admin/payments',  label: 'Payments',   icon: CreditCard },
+      { href: '/dashboard/admin/services',  label: 'Services',   icon: Package },
+      { href: '/dashboard/admin/devs',      label: 'Developers', icon: Code2 },
     ],
   },
   {
@@ -184,7 +195,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
   if (!user) return null;
 
-  const groups = user.role === 'admin' ? adminMenuGroups : clientMenuGroups;
+  const groups = user.role === 'admin' ? adminMenuGroups : user.role === 'dev' ? devMenuGroups : clientMenuGroups;
   const handleLogout = () => { logout(); router.push('/login'); };
   const initials = user.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
 
@@ -262,8 +273,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
               </div>
               <div style={{ minWidth: 0, overflow: 'hidden' }}>
                 <h1 style={{ fontSize: 12, fontWeight: 800, color: '#1E2A32', letterSpacing: '-0.02em', whiteSpace: 'nowrap', lineHeight: 1.2 }}>AI APP LABS</h1>
-                <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#3A8DDE', lineHeight: 1.2 }}>
-                  {user.role === 'admin' ? 'Admin' : 'Client'} Portal
+                <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: user.role === 'dev' ? '#6BCF7A' : '#3A8DDE', lineHeight: 1.2 }}>
+                  {user.role === 'admin' ? 'Admin' : user.role === 'dev' ? 'Dev' : 'Client'} Portal
                 </p>
               </div>
             </div>
@@ -318,7 +329,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               {group.items.map(item => {
                 const isActive = pathname === item.href || (
-                  item.href !== '/dashboard/admin' && item.href !== '/dashboard/client' &&
+                  item.href !== '/dashboard/admin' && item.href !== '/dashboard/client' && item.href !== '/dashboard/dev' &&
                   pathname.startsWith(item.href + '/')
                 );
                 const Icon = item.icon;
