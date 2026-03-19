@@ -265,6 +265,7 @@ export default function ClientProjectDetailPage() {
   };
 
   const saveSetupValue = async (itemId: string) => {
+    if (!editSetupValue.trim()) return;
     setSavingSetupId(itemId);
     try {
       const res = await fetch(`/api/setup-items/${itemId}`, {
@@ -273,7 +274,7 @@ export default function ClientProjectDetailPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ value: editSetupValue }),
+        body: JSON.stringify({ value: editSetupValue.trim(), completed: true }),
       });
       const result = await res.json();
       if (result.success) {
@@ -281,6 +282,7 @@ export default function ClientProjectDetailPage() {
           prev.map((s) => (s._id === itemId ? result.data : s))
         );
         setEditingSetupId(null);
+        setEditSetupValue("");
       }
     } catch (error) {
       console.error("Error saving setup value:", error);
@@ -461,6 +463,7 @@ export default function ClientProjectDetailPage() {
 
   const completedSetup = setupItems.filter((s) => s.completed).length;
   const totalSetup = setupItems.length;
+  const isContentProject = project.type === "content_distribution";
 
   const tabs: { id: Tab; label: string; badge?: number }[] = [
     { id: "overview", label: "Overview" },
@@ -1592,7 +1595,14 @@ export default function ClientProjectDetailPage() {
                                 onChange={(e) =>
                                   setEditSetupValue(e.target.value)
                                 }
-                                placeholder="Your response…"
+                                placeholder={
+                                  item.completed
+                                    ? "Update your response…"
+                                    : item.value ??
+                                      (isContentProject
+                                        ? "Share/paste links to it..."
+                                        : "Type your response…")
+                                }
                                 className="rounded-xl h-8 text-sm flex-1"
                                 style={{
                                   background: "rgba(58,141,222,0.06)",
@@ -1628,17 +1638,52 @@ export default function ClientProjectDetailPage() {
                             </div>
                           ) : (
                             <div className="flex items-center gap-2 mt-0.5">
-                              <p
-                                className="text-xs flex-1"
-                                style={{ color: "#5F6B76" }}
-                              >
-                                {item.value ?? "—"}
-                              </p>
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                {item.value &&
+                                (item.value.startsWith("http") ||
+                                  item.value.includes(".com")) ? (
+                                  <div className="flex items-center gap-2 w-full">
+                                    <a
+                                      href={
+                                        item.value.startsWith("http")
+                                          ? item.value
+                                          : `https://${item.value}`
+                                      }
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs font-semibold text-blue-500 hover:underline truncate max-w-[200px] flex items-center gap-1"
+                                    >
+                                      {item.value}
+                                      <ExternalLink className="w-3 h-3" />
+                                    </a>
+                                    <button
+                                      onClick={() =>
+                                        navigator.clipboard.writeText(
+                                          item.value!
+                                        )
+                                      }
+                                      className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors active:scale-90"
+                                      title="Copy link"
+                                    >
+                                      <ClipboardList className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <p
+                                    className="text-xs flex-1 truncate"
+                                    style={{ color: "#5F6B76" }}
+                                  >
+                                    {item.value ?? "—"}
+                                  </p>
+                                )}
+                              </div>
                               {!item.completed && (
                                 <button
                                   onClick={() => {
                                     setEditingSetupId(item._id!);
-                                    setEditSetupValue(item.value ?? "");
+                                    setEditSetupValue(
+                                      item.completed ? item.value ?? "" : ""
+                                    );
                                   }}
                                   className="p-1 rounded transition-colors flex-shrink-0"
                                   style={{ color: "#8A97A3" }}

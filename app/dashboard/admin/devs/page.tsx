@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { User, Project } from '@/lib/types';
 import {
   Code2, Plus, X, ChevronDown, ChevronUp, CheckCircle2, AlertCircle,
-  Mail, Calendar, FolderKanban, UserPlus, Check, Search,
+  Mail, Calendar, FolderKanban, UserPlus, Check, Search, Trash2,
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -51,6 +51,7 @@ export default function AdminDevsPage() {
   const [expandedDevId, setExpandedDevId] = useState<string | null>(null);
   const [devProjects, setDevProjects] = useState<Record<string, string[]>>({});
   const [loadingDevProjects, setLoadingDevProjects] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [assigningProject, setAssigningProject] = useState<string | null>(null);
   const [projectSearch, setProjectSearch] = useState('');
 
@@ -199,6 +200,19 @@ export default function AdminDevsPage() {
     } finally {
       setAssigningProject(null);
     }
+  };
+
+  const handleDeleteDev = async (devId: string) => {
+    try {
+      const res = await fetch(`/api/admin/devs/${devId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const result = await res.json();
+      if (result.success) { setDevs(prev => prev.filter(d => d._id !== devId)); notify('success', 'Developer removed'); }
+      else notify('error', result.error || 'Failed to remove developer');
+    } catch { notify('error', 'Network error'); }
+    finally { setConfirmDeleteId(null); }
   };
 
   return (
@@ -376,14 +390,26 @@ export default function AdminDevsPage() {
                         </div>
                       </div>
 
-                      {/* Manage button */}
-                      <button
-                        onClick={() => handleToggleExpand(dev._id as string)}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, padding: '7px 14px', borderRadius: 9, background: isExpanded ? 'rgba(58,141,222,0.1)' : 'rgba(58,141,222,0.06)', color: '#3A8DDE', border: '1px solid rgba(58,141,222,0.2)', cursor: 'pointer', flexShrink: 0, transition: 'all 0.12s' }}
-                      >
-                        {isExpanded ? <ChevronUp style={{ width: 13, height: 13 }} /> : <ChevronDown style={{ width: 13, height: 13 }} />}
-                        Manage
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                        {/* Manage button */}
+                        <button
+                          onClick={() => handleToggleExpand(dev._id as string)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, padding: '7px 14px', borderRadius: 9, background: isExpanded ? 'rgba(58,141,222,0.1)' : 'rgba(58,141,222,0.06)', color: '#3A8DDE', border: '1px solid rgba(58,141,222,0.2)', cursor: 'pointer', transition: 'all 0.12s' }}
+                        >
+                          {isExpanded ? <ChevronUp style={{ width: 13, height: 13 }} /> : <ChevronDown style={{ width: 13, height: 13 }} />}
+                          Manage
+                        </button>
+                        {/* Delete button */}
+                        <button
+                          onClick={() => setConfirmDeleteId(dev._id as string)}
+                          title="Remove developer"
+                          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '7px 9px', borderRadius: 9, background: 'rgba(58,141,222,0.06)', color: '#8A97A3', border: '1px solid #DDE5EC', cursor: 'pointer', transition: 'all 0.12s' }}
+                          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#fff1f2'; (e.currentTarget as HTMLElement).style.color = '#ef4444'; (e.currentTarget as HTMLElement).style.borderColor = '#fecaca'; }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(58,141,222,0.06)'; (e.currentTarget as HTMLElement).style.color = '#8A97A3'; (e.currentTarget as HTMLElement).style.borderColor = '#DDE5EC'; }}
+                        >
+                          <Trash2 style={{ width: 13, height: 13 }} />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Expanded project assignment panel */}
@@ -471,6 +497,35 @@ export default function AdminDevsPage() {
           )}
         </div>
       </div>
+
+      {/* Delete confirm dialog */}
+      {confirmDeleteId && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20 }}>
+          <div style={{ ...CARD, maxWidth: 380, width: '100%', padding: 28, textAlign: 'center' }}>
+            <div style={{ width: 48, height: 48, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff1f2', border: '1px solid #fecaca', margin: '0 auto 16px' }}>
+              <Trash2 style={{ width: 22, height: 22, color: '#ef4444' }} />
+            </div>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1E2A32', marginBottom: 8 }}>Remove Developer?</h3>
+            <p style={{ fontSize: 13, color: '#5F6B76', lineHeight: 1.6, marginBottom: 24 }}>
+              This will permanently delete the developer account and all associated data. This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button
+                onClick={() => handleDeleteDev(confirmDeleteId)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, padding: '9px 20px', borderRadius: 10, background: '#ef4444', color: '#fff', border: 'none', cursor: 'pointer' }}
+              >
+                <Trash2 style={{ width: 13, height: 13 }} /> Delete
+              </button>
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                style={{ fontSize: 13, fontWeight: 500, padding: '9px 20px', borderRadius: 10, background: 'rgba(58,141,222,0.06)', color: '#334155', border: '1px solid #DDE5EC', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

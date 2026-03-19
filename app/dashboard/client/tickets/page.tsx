@@ -58,6 +58,22 @@ export default function ClientTicketsPage() {
     finally { setIsLoading(false); }
   };
 
+  const closeTicket = async (ticketId: string) => {
+    try {
+      const res = await fetch(`/api/tickets/${ticketId}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'closed' }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        setTickets(prev => prev.map(t => t._id === ticketId ? { ...t, status: 'closed' as const } : t));
+        setNotification('Ticket closed');
+        setTimeout(() => setNotification(null), 3000);
+      }
+    } catch { /* ignore */ }
+  };
+
   const filtered = filter === 'all' ? tickets : tickets.filter(t => t.status === filter);
   const counts = {
     all: tickets.length,
@@ -204,6 +220,20 @@ export default function ClientTicketsPage() {
                         <p className="text-xs flex items-center gap-1 mt-2" style={{ color: '#f59e0b' }}>
                           <Clock className="w-3 h-3" /> Awaiting response from our team
                         </p>
+                      )}
+
+                      {ticket.status !== 'closed' && (
+                        <div className="mt-3 flex justify-end">
+                          <button
+                            onClick={() => closeTicket(ticket._id!)}
+                            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all active:scale-95"
+                            style={{ background: 'rgba(58,141,222,0.06)', color: '#8A97A3', border: '1px solid #DDE5EC' }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#fff1f2'; (e.currentTarget as HTMLElement).style.color = '#ef4444'; (e.currentTarget as HTMLElement).style.borderColor = '#fecaca'; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(58,141,222,0.06)'; (e.currentTarget as HTMLElement).style.color = '#8A97A3'; (e.currentTarget as HTMLElement).style.borderColor = '#DDE5EC'; }}
+                          >
+                            <XCircle className="w-3.5 h-3.5" /> Close Ticket
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>

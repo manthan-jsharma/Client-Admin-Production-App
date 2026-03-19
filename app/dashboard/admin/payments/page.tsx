@@ -73,34 +73,22 @@ export default function AdminPaymentsPage() {
   const fetchAll = async () => {
     const token = localStorage.getItem('auth_token');
     const h = { Authorization: `Bearer ${token}` };
-    const [projRes, clientRes, payRes, devPayRes] = await Promise.all([
+    const [projRes, clientRes, devsRes, payRes, devPayRes] = await Promise.all([
       fetch('/api/projects', { headers: h }),
       fetch('/api/admin/clients', { headers: h }),
+      fetch('/api/admin/devs', { headers: h }),
       fetch('/api/admin/payments', { headers: h }),
       fetch('/api/admin/dev-payments', { headers: h }),
     ]);
-    const [proj, cl, pay, dp] = await Promise.all([projRes.json(), clientRes.json(), payRes.json(), devPayRes.json()]);
+    const [proj, cl, dv, pay, dp] = await Promise.all([projRes.json(), clientRes.json(), devsRes.json(), payRes.json(), devPayRes.json()]);
     if (proj.success) setProjects(proj.data);
-    if (cl.success) {
-      setClients(cl.data.filter((u: User) => u.role === 'client'));
-      setDevs(cl.data.filter((u: User) => u.role === 'dev'));
-    }
+    if (cl.success) setClients(cl.data);
+    if (dv.success) setDevs(dv.data);
     if (pay.success) setPayments(pay.data);
     if (dp.success) setDevPayments(dp.data);
     setIsLoading(false);
     setDevLoading(false);
   };
-
-  // Also fetch devs separately since /api/admin/clients filters to clients only
-  useEffect(() => {
-    const fetchDevs = async () => {
-      const token = localStorage.getItem('auth_token');
-      const res = await fetch('/api/admin/devs', { headers: { Authorization: `Bearer ${token}` } });
-      const result = await res.json();
-      if (result.success) setDevs(result.data);
-    };
-    fetchDevs();
-  }, []);
 
   const notify = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
@@ -111,7 +99,7 @@ export default function AdminPaymentsPage() {
   const handleProjectSelect = (projectId: string) => {
     const project = projects.find(p => p._id === projectId);
     if (!project) { setCreateForm(f => ({ ...f, projectId: '', clientName: '', clientId: '' })); return; }
-    const client = clients.find(c => c._id === project.clientId);
+    const client = clients.find(c => c._id === project.clientId && c.role === 'client');
     setCreateForm(f => ({ ...f, projectId, clientName: client?.name ?? '', clientId: project.clientId }));
   };
 
@@ -418,7 +406,7 @@ export default function AdminPaymentsPage() {
                         <FolderKanban className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" style={{ color: '#8A97A3' }} />
                         <select value={createForm.projectId} onChange={e => handleProjectSelect(e.target.value)} required className="w-full h-10 pl-9 pr-8 rounded-xl text-sm appearance-none focus:outline-none" style={inputStyle}>
                           <option value="">— Select project —</option>
-                          {projects.map(p => { const c = clients.find(c => c._id === p.clientId); return <option key={p._id} value={p._id}>{p.name}{c ? ` · ${c.name}` : ''}</option>; })}
+                          {projects.map(p => { const c = clients.find(c => c._id === p.clientId && c.role === 'client'); return <option key={p._id} value={p._id}>{p.name}{c ? ` · ${c.name}` : ''}</option>; })}
                         </select>
                         <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" style={{ color: '#8A97A3' }} />
                       </div>
