@@ -192,8 +192,10 @@ export async function sendAccountApproved(client: {
       "#bbf7d0",
       "#166534"
     )}
-    ${para(
-      "Log in now to view your projects, chat with your team, and track progress."
+    ${para("Use the credentials below to log in:")}
+    ${detailTable(
+      detail("Login Email", client.email) +
+      detail("Password", "The password you set during sign-up")
     )}
     ${btn(`${APP}/login`, "Log In Now")}
   `

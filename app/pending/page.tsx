@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { Clock, XCircle, LogOut, Mail, RefreshCw, CheckCircle2 } from 'lucide-react';
 
 export default function PendingPage() {
-  const { user, isLoading, isAuthenticated, logout } = useAuth();
+  const { user, token, isLoading, isAuthenticated, logout } = useAuth();
   const router = useRouter();
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     if (!isLoading) {
@@ -18,6 +19,22 @@ export default function PendingPage() {
   }, [isLoading, isAuthenticated, user, router]);
 
   const handleLogout = () => { logout(); router.push('/login'); };
+
+  const handleCheckStatus = async () => {
+    setChecking(true);
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await res.json();
+      if (result.success && result.data?.status === 'approved') {
+        logout();
+        router.push('/login');
+      }
+    } finally {
+      setChecking(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -148,10 +165,12 @@ export default function PendingPage() {
 
             <div className="space-y-3">
               <button
-                onClick={() => router.refresh()}
-                className="btn-primary w-full h-11 text-sm rounded-xl transition-all duration-150 active:scale-95 flex items-center justify-center gap-2"
+                onClick={handleCheckStatus}
+                disabled={checking}
+                className="btn-primary w-full h-11 text-sm rounded-xl transition-all duration-150 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-60"
               >
-                <RefreshCw className="w-4 h-4" /> Check status
+                <RefreshCw className={`w-4 h-4 ${checking ? 'animate-spin' : ''}`} />
+                {checking ? 'Checking…' : 'Check status'}
               </button>
               <button
                 onClick={handleLogout}
