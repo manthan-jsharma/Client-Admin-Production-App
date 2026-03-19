@@ -138,6 +138,22 @@ export interface Payment {
   updatedAt?: Date;
 }
 
+// Dev Payment Types (admin → dev)
+export interface DevPayment {
+  _id?: string;
+  projectId: string;
+  devId: string;
+  devName?: string;
+  amount: number;
+  currency: string;
+  status: 'pending' | 'paid';
+  paymentMethod?: string;
+  notes?: string;
+  paidDate?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 // Chat Types
 export interface ChatAttachment {
   s3Key: string;        // S3 object key (connect AWS later)

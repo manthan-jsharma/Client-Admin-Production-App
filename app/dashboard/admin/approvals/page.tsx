@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { User } from '@/lib/types';
 import {
   Users, CheckCircle2, XCircle, Clock, Plus, X,
-  Mail, Phone, Building2, Briefcase, Lock, AlertCircle, Eye, EyeOff,
+  Mail, Phone, Building2, Briefcase, Lock, AlertCircle, Eye, EyeOff, Trash2,
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -26,6 +26,7 @@ export default function ApprovalsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('pending');
   const [rejectDialogId, setRejectDialogId] = useState<string | null>(null);
   const [rejectFeedback, setRejectFeedback] = useState('');
+  const [deleteDialogId, setDeleteDialogId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -70,6 +71,18 @@ export default function ApprovalsPage() {
         setClients(prev => prev.map(c => c._id === rejectDialogId ? { ...c, status: 'rejected' as const, approvalFeedback: rejectFeedback } : c));
         setRejectDialogId(null); setRejectFeedback(''); notify('success', 'Client rejected');
       } else notify('error', result.error || 'Failed to reject');
+    } catch { notify('error', 'Network error'); }
+    finally { setIsSubmitting(false); }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteDialogId) return;
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/admin/clients/${deleteDialogId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+      const result = await res.json();
+      if (result.success) { setClients(prev => prev.filter(c => c._id !== deleteDialogId)); setDeleteDialogId(null); notify('success', 'Client removed'); }
+      else notify('error', result.error || 'Failed to delete');
     } catch { notify('error', 'Network error'); }
     finally { setIsSubmitting(false); }
   };
@@ -199,6 +212,11 @@ export default function ApprovalsPage() {
                             style={{ background: '#fff1f2', color: '#ef4444', border: '1px solid #fecaca' }}>
                             <XCircle className="w-3.5 h-3.5" /> Reject
                           </button>
+                          <button onClick={() => setDeleteDialogId(client._id!)} disabled={isSubmitting}
+                            className="flex items-center gap-1.5 text-xs font-semibold rounded-xl h-9 px-3 transition-all"
+                            style={{ background: 'rgba(58,141,222,0.06)', color: '#8A97A3', border: '1px solid #DDE5EC' }}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -237,6 +255,13 @@ export default function ApprovalsPage() {
                   <div className="space-y-1.5 text-xs" style={{ color: '#5F6B76' }}>
                     <div className="flex items-center gap-2"><Mail className="w-3.5 h-3.5" style={{ color: '#8A97A3' }} /><span className="truncate">{client.email}</span></div>
                     {client.phone && <div className="flex items-center gap-2"><Phone className="w-3.5 h-3.5" style={{ color: '#8A97A3' }} />{client.phone}</div>}
+                  </div>
+                  <div className="mt-3 pt-3" style={{ borderTop: '1px solid #f1f5f9' }}>
+                    <button onClick={() => setDeleteDialogId(client._id!)}
+                      className="flex items-center gap-1.5 text-xs font-semibold rounded-xl h-8 px-3 transition-all w-full justify-center"
+                      style={{ background: '#fff1f2', color: '#ef4444', border: '1px solid #fecaca' }}>
+                      <Trash2 className="w-3.5 h-3.5" /> Remove Client
+                    </button>
                   </div>
                 </div>
               ))}
@@ -318,6 +343,35 @@ export default function ApprovalsPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirm Dialog */}
+      {deleteDialogId && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-sm shadow-2xl rounded-2xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #fecaca' }}>
+            <div className="p-6">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: '#fff1f2' }}>
+                <Trash2 className="w-6 h-6" style={{ color: '#ef4444' }} />
+              </div>
+              <h3 className="text-sm font-semibold text-center mb-1" style={{ color: '#1E2A32' }}>Remove Client</h3>
+              <p className="text-xs text-center mb-5" style={{ color: '#5F6B76' }}>
+                This will permanently delete the client and all their data. This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={handleDelete} disabled={isSubmitting}
+                  className="flex-1 flex items-center justify-center gap-2 disabled:opacity-50 text-white font-semibold rounded-xl h-10 text-sm"
+                  style={{ background: '#ef4444' }}>
+                  {isSubmitting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  Delete
+                </button>
+                <button onClick={() => setDeleteDialogId(null)} className="flex-1 font-semibold rounded-xl h-10 text-sm"
+                  style={{ background: 'rgba(58,141,222,0.06)', color: '#334155', border: '1px solid #DDE5EC' }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Reject Dialog */}
       {rejectDialogId && (

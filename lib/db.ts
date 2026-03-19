@@ -3,7 +3,7 @@
 
 import { supabase } from './supabase';
 import {
-  User, Project, ChatMessage, Payment, RoadmapItem, SetupItem,
+  User, Project, ChatMessage, Payment, DevPayment, RoadmapItem, SetupItem,
   Ticket, Service, Referral, Delivery,
   Testimonial, LeadGenRequest, MaintenanceFeedback,
 } from './types';
@@ -458,6 +458,11 @@ export async function getUserById(id: string): Promise<User | null> {
     .single();
   if (error || !data) return null;
   return mapUser(data as Record<string, unknown>);
+}
+
+export async function deleteUser(id: string): Promise<boolean> {
+  const { error } = await supabase.from('users').delete().eq('id', id);
+  return !error;
 }
 
 export async function createUser(user: User): Promise<User> {
@@ -944,6 +949,55 @@ export async function updatePayment(id: string, updates: Partial<Payment>): Prom
 
   if (error || !data) return null;
   return mapPayment(data as Record<string, unknown>);
+}
+
+// ─── Dev Payment Operations ───────────────────────────────────────────────────
+
+function mapDevPayment(row: Record<string, unknown>): DevPayment {
+  return {
+    _id: row.id as string,
+    projectId: row.project_id as string,
+    devId: row.dev_id as string,
+    devName: n(row.dev_name as string | null),
+    amount: row.amount as number,
+    currency: row.currency as string,
+    status: row.status as DevPayment['status'],
+    paymentMethod: n(row.payment_method as string | null),
+    notes: n(row.notes as string | null),
+    paidDate: row.paid_date ? new Date(row.paid_date as string) : undefined,
+    createdAt: row.created_at ? new Date(row.created_at as string) : undefined,
+    updatedAt: row.updated_at ? new Date(row.updated_at as string) : undefined,
+  };
+}
+
+export async function getAllDevPayments(): Promise<DevPayment[]> {
+  const { data, error } = await supabase.from('dev_payments').select('*').order('created_at', { ascending: false });
+  if (error || !data) return [];
+  return (data as Record<string, unknown>[]).map(mapDevPayment);
+}
+
+export async function createDevPayment(p: DevPayment): Promise<DevPayment> {
+  const { data, error } = await supabase.from('dev_payments').insert({
+    project_id: p.projectId, dev_id: p.devId, dev_name: p.devName ?? null,
+    amount: p.amount, currency: p.currency ?? 'USD', status: p.status ?? 'pending',
+    payment_method: p.paymentMethod ?? null, notes: p.notes ?? null,
+    paid_date: p.paidDate ? new Date(p.paidDate).toISOString() : null,
+  }).select('*').single();
+  if (error || !data) throw new Error(`createDevPayment failed: ${error?.message}`);
+  return mapDevPayment(data as Record<string, unknown>);
+}
+
+export async function updateDevPayment(id: string, updates: Partial<DevPayment>): Promise<DevPayment | null> {
+  const row: Record<string, unknown> = {};
+  if (updates.amount !== undefined) row.amount = updates.amount;
+  if (updates.status !== undefined) row.status = updates.status;
+  if (updates.paymentMethod !== undefined) row.payment_method = updates.paymentMethod ?? null;
+  if (updates.notes !== undefined) row.notes = updates.notes ?? null;
+  if (updates.paidDate !== undefined) row.paid_date = updates.paidDate ? new Date(updates.paidDate).toISOString() : null;
+  row.updated_at = new Date().toISOString();
+  const { data, error } = await supabase.from('dev_payments').update(row).eq('id', id).select('*').single();
+  if (error || !data) return null;
+  return mapDevPayment(data as Record<string, unknown>);
 }
 
 // ─── Setup Items Operations ───────────────────────────────────────────────────

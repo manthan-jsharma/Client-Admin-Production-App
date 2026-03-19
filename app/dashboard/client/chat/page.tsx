@@ -171,8 +171,16 @@ function MessageRow({ msg, userId }: { msg: ChatMessage; userId: string }) {
 
       <div className={`max-w-[82%] sm:max-w-[70%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
         {/* Sender label */}
-        <span className="text-[10px] mb-1 px-1" style={{ color: '#8A97A3' }}>
-          {isAI ? 'AI Assistant' : msg.senderName}
+        <span className="inline-flex items-center gap-1 mb-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
+          style={isAI
+            ? { background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe' }
+            : isAdmin
+            ? { background: '#eff8ff', color: '#3A8DDE', border: '1px solid #c8dff0' }
+            : msg.senderRole === 'dev'
+            ? { background: '#f0fdf4', color: '#059669', border: '1px solid #a7f3d0' }
+            : { background: 'rgba(58,141,222,0.06)', color: '#5F6B76', border: '1px solid #DDE5EC' }
+          }>
+          {isAI ? 'AI' : isAdmin ? 'Admin' : msg.senderRole === 'dev' ? 'Dev' : 'Client'}
         </span>
 
         {/* Ticket card */}

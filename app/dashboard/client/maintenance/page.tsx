@@ -144,7 +144,7 @@ export default function ClientMaintenancePage() {
 
             {/* Chat CTA */}
             <Link
-              href="/dashboard/client/chat"
+              href="/dashboard/client/chat?inquiry=Hi%2C+I%27d+like+to+inquire+about+the+monthly+maintenance+plan.+Could+you+share+more+details+about+pricing+and+what%27s+included%3F&service=Monthly+Maintenance"
               className="inline-flex items-center gap-2 font-semibold text-sm rounded-xl px-5 h-10 transition-colors"
               style={{ background: '#3A8DDE', color: 'white' }}
               onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#2F6FB2'; }}

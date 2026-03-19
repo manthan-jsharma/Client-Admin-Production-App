@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminUpdateClient, getUserById } from '@/lib/db';
+import { adminUpdateClient, getUserById, deleteUser } from '@/lib/db';
 import { verifyToken, extractToken, isValidUrl } from '@/lib/auth';
 
 export async function PATCH(
@@ -57,6 +57,25 @@ export async function PATCH(
     return NextResponse.json({ success: true, data: safeUser });
   } catch (error) {
     console.error('Error updating client:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ clientId: string }> }
+) {
+  try {
+    const token = extractToken(request.headers.get('Authorization'));
+    const decoded = token ? verifyToken(token) : null;
+    if (!decoded || decoded.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    const { clientId } = await params;
+    const ok = await deleteUser(clientId);
+    if (!ok) return NextResponse.json({ error: 'Failed to delete client' }, { status: 500 });
+    return NextResponse.json({ success: true });
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
