@@ -592,11 +592,11 @@ export default function ChatPage() {
       )}
 
       {/* Header */}
-      <div className="px-8 pt-8 pb-5 bg-white flex-shrink-0" style={{ borderBottom: '1px solid #DDE5EC' }}>
+      <div className="px-4 sm:px-8 pt-5 sm:pt-8 pb-4 sm:pb-5 bg-white flex-shrink-0" style={{ borderBottom: '1px solid #DDE5EC' }}>
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#1E2A32', letterSpacing: '-0.02em', fontWeight: 800 }}>Chat</h1>
-            <p className="text-sm mt-1" style={{ color: '#5F6B76' }}>
+            <h1 className="text-xl sm:text-2xl font-bold" style={{ color: '#1E2A32', letterSpacing: '-0.02em', fontWeight: 800 }}>Chat</h1>
+            <p className="text-xs sm:text-sm mt-1" style={{ color: '#5F6B76' }}>
               Type <span style={{ color: '#8b5cf6', fontWeight: 500 }}>@AI</span> to ask the AI assistant anything
             </p>
           </div>
@@ -633,14 +633,14 @@ export default function ChatPage() {
       </div>
 
       {/* Chat body */}
-      <div className="flex-1 overflow-hidden flex flex-col min-h-0 p-6">
+      <div className="flex-1 overflow-hidden flex flex-col min-h-0 p-2 sm:p-6">
         <div
           className="flex-1 flex flex-col overflow-hidden"
           style={{ background: '#ffffff', border: '1px solid #DDE5EC', boxShadow: '0 1px 3px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.04)', borderRadius: '16px' }}
         >
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-4" style={{ background: 'rgba(58,141,222,0.06)' }}>
+          <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4" style={{ background: 'rgba(58,141,222,0.06)' }}>
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: 'rgba(58,141,222,0.2)', borderTopColor: '#3A8DDE' }} />
@@ -754,7 +754,7 @@ export default function ChatPage() {
           )}
 
           {/* Input area */}
-          <div className="p-4" style={{ borderTop: '1px solid #DDE5EC', background: '#ffffff' }}>
+          <div className="p-2 sm:p-4" style={{ borderTop: '1px solid #DDE5EC', background: '#ffffff' }}>
             {/* AI hint */}
             {newMessage.toLowerCase().includes('@ai') && (
               <div className="flex items-center gap-2 mb-2 px-1">
@@ -826,22 +826,22 @@ export default function ChatPage() {
               </button>
             </div>
 
-            <p className="text-[10px] mt-2 px-1" style={{ color: '#8A97A3' }}>
-              Press{' '}
-              <kbd className="px-1 py-0.5 rounded text-[10px]" style={{ background: '#f1f5f9', color: '#5F6B76' }}>Enter</kbd>
-              {' '}to send ·{' '}
-              <kbd className="px-1 py-0.5 rounded text-[10px]" style={{ background: '#f1f5f9', color: '#5F6B76' }}>Shift+Enter</kbd>
-              {' '}for new line ·
-              <button
-                onClick={() => setShowTicketForm(true)}
-                className="ml-1 transition-colors"
-                style={{ color: '#f59e0b' }}
+            <div className="hidden sm:flex items-center gap-1 mt-2 px-1 flex-wrap text-[10px]" style={{ color: '#8A97A3' }}>
+              <span>Press <kbd className="px-1 py-0.5 rounded text-[10px]" style={{ background: '#f1f5f9', color: '#5F6B76' }}>Enter</kbd> to send</span>
+              <span>·</span>
+              <span><kbd className="px-1 py-0.5 rounded text-[10px]" style={{ background: '#f1f5f9', color: '#5F6B76' }}>Shift+Enter</kbd> for new line</span>
+              <span>·</span>
+              <button onClick={() => setShowTicketForm(true)} className="transition-colors" style={{ color: '#f59e0b' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#d97706'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#f59e0b'; }}
-              >
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#f59e0b'; }}>
                 Report issue
               </button>
-            </p>
+            </div>
+            <div className="sm:hidden flex justify-end mt-1.5 px-1">
+              <button onClick={() => setShowTicketForm(true)} className="text-[10px] transition-colors" style={{ color: '#f59e0b' }}>
+                Report issue
+              </button>
+            </div>
           </div>
         </div>
       </div>
