@@ -101,9 +101,9 @@ function renderWithMentions(text: string) {
   return text.split(/(@\w+)/g).map((part, i) => {
     if (!part.startsWith('@')) return part;
     const lower = part.toLowerCase();
-    const color = lower === '@ai' ? '#8b5cf6'
-      : lower === '@admin' ? '#3A8DDE'
-      : lower === '@dev' ? '#16a34a'
+    const color = lower === '@ai' ? '#7c3aed'
+      : lower === '@admin' ? '#f97316'
+      : lower === '@dev' ? '#059669'
       : '#f59e0b';
     return (
       <span key={i} style={{ color, fontWeight: 700, background: `${color}18`, borderRadius: 4, padding: '1px 4px' }}>
@@ -169,7 +169,7 @@ function MessageRow({ msg, userId }: { msg: ChatMessage; userId: string }) {
         </div>
       )}
 
-      <div className={`max-w-[70%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+      <div className={`max-w-[82%] sm:max-w-[70%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
         {/* Sender label */}
         <span className="text-[10px] mb-1 px-1" style={{ color: '#8A97A3' }}>
           {isAI ? 'AI Assistant' : msg.senderName}
@@ -611,7 +611,7 @@ export default function ChatPage() {
         {/* Project tabs */}
         {projects.length > 1 && (
           <div
-            className="mt-4 flex items-center gap-1 p-1 rounded-xl w-fit"
+            className="mt-4 flex items-center gap-1 p-1 rounded-xl overflow-x-auto max-w-full"
             style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC' }}
           >
             {projects.map(p => (

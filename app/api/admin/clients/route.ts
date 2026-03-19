@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, extractToken, hashPassword, isValidEmail, isValidPassword } from '@/lib/auth';
 import { getAllUsers, createUser, getUserByEmail } from '@/lib/db';
 import { User, ApiResponse } from '@/lib/types';
+import { sendAdminCreatedAccount } from '@/lib/email';
 
 // GET /api/admin/clients — list all clients
 export async function GET(request: NextRequest): Promise<NextResponse<ApiResponse<User[]>>> {
@@ -81,6 +82,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
 
     const created = await createUser(newUser);
     const { password: _, ...userWithoutPassword } = created;
+
+    sendAdminCreatedAccount({ name: created.name, email: created.email, password });
 
     return NextResponse.json(
       { success: true, message: 'Client created successfully', data: userWithoutPassword },

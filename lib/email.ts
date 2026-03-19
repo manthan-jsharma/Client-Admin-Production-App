@@ -173,6 +173,31 @@ export async function sendSignupConfirmation(client: {
   await send(ADMIN, `New client signup: ${client.name}`, adminHtml);
 }
 
+// ─── 2a. Admin-Created Account Welcome ───────────────────────────────────────
+
+export async function sendAdminCreatedAccount(client: {
+  name: string;
+  email: string;
+  password: string;
+}) {
+  const html = wrap(
+    "Your AI APP LABS Account",
+    `
+    ${heading("Welcome to AI APP LABS!")}
+    ${para(
+      `Hi ${client.name}, an account has been created for you on AI APP LABS. You can log in immediately using the credentials below.`
+    )}
+    ${detailTable(
+      detail("Login Email", client.email) +
+      detail("Password", client.password)
+    )}
+    ${btn(`${APP}/login`, "Log In Now")}
+    ${para("We recommend changing your password after your first login.")}
+  `
+  );
+  await send(client.email, "Your AI APP LABS account is ready", html);
+}
+
 // ─── 2. Account Approved ──────────────────────────────────────────────────────
 
 export async function sendAccountApproved(client: {
