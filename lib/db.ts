@@ -153,7 +153,7 @@ function mapSetupItem(row: Record<string, unknown>): SetupItem {
 function mapMessage(row: Record<string, unknown>): ChatMessage {
   return {
     _id: row.id as string,
-    projectId: row.project_id as string,
+    projectId: (row.channel_id ?? row.project_id) as string,
     senderId: row.sender_id as string,
     senderName: row.sender_name as string,
     senderRole: row.sender_role as 'admin' | 'client' | 'ai' | 'dev',
@@ -770,7 +770,7 @@ export async function getProjectMessages(
   let query = supabase
     .from('chat_messages')
     .select('*')
-    .eq('project_id', projectId)
+    .eq('channel_id', projectId)
     .order('created_at', { ascending: false })
     .limit(limit);
 
@@ -797,8 +797,10 @@ export async function getAllMessages(): Promise<ChatMessage[]> {
 export async function createMessage(message: ChatMessage): Promise<ChatMessage> {
   // sender_id is a UUID FK — AI messages have no real user, so store null
   const isAiSender = message.isAI || message.senderRole === 'ai';
+  const isInbox = message.projectId?.startsWith('inbox_');
   const insertRow: Record<string, unknown> = {
-    project_id: message.projectId,
+    project_id: isInbox ? null : message.projectId,
+    channel_id: message.projectId,
     sender_id: isAiSender ? null : message.senderId,
     sender_name: message.senderName,
     sender_role: message.senderRole,
@@ -825,7 +827,7 @@ export async function markMessagesRead(projectId: string, userId: string): Promi
   const { data: messages } = await supabase
     .from('chat_messages')
     .select('id, read_by')
-    .eq('project_id', projectId);
+    .eq('channel_id', projectId);
 
   if (!messages) return;
 
@@ -844,7 +846,7 @@ export async function getUnreadCount(projectId: string, userId: string): Promise
   const { data, error } = await supabase
     .from('chat_messages')
     .select('id, read_by')
-    .eq('project_id', projectId);
+    .eq('channel_id', projectId);
 
   if (error || !data) return 0;
   return (data as Record<string, unknown>[]).filter((m) => {
@@ -902,7 +904,7 @@ export async function getMessagesSince(projectId: string, since: Date): Promise<
   const { data, error } = await supabase
     .from('chat_messages')
     .select('*')
-    .eq('project_id', projectId)
+    .eq('channel_id', projectId)
     .gt('created_at', since.toISOString())
     .order('created_at', { ascending: true });
 
