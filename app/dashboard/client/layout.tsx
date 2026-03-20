@@ -44,12 +44,12 @@ export default function ClientLayout({
   }, [isAuthenticated, user, isLoading, router]);
 
   useEffect(() => {
-    const introSeen = localStorage.getItem("ai_notify_intro_seen");
-    if (!introSeen) {
+    // Only redirect if they have NEVER seen the AI Notify welcome screen
+    const hasSeenNotify = localStorage.getItem("ai_notify_welcome_seen");
+    if (!hasSeenNotify) {
       router.push("/dashboard/client/ai-notify");
     }
   }, [router]);
-
   if (isLoading) {
     return (
       <div

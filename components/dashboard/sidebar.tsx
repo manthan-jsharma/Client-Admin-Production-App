@@ -125,12 +125,38 @@ const supportAdminMenuGroups: MenuGroup[] = [
   {
     label: "Support",
     items: [
-      { href: "/dashboard/support-admin", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/dashboard/admin/projects", label: "Projects", icon: FolderKanban },
-      { href: "/dashboard/admin/requests", label: "Tickets", icon: ClipboardList, badgeKey: "openTickets" },
-      { href: "/dashboard/admin/chats", label: "Chat", icon: MessageSquare, badgeKey: "unreadMessages" },
-      { href: "/dashboard/admin/testimonials", label: "Testimonials", icon: Star },
-      { href: "/dashboard/admin/maintenance", label: "Maintenance", icon: Wrench },
+      {
+        href: "/dashboard/support-admin",
+        label: "Dashboard",
+        icon: LayoutDashboard,
+      },
+      {
+        href: "/dashboard/admin/projects",
+        label: "Projects",
+        icon: FolderKanban,
+      },
+      {
+        href: "/dashboard/admin/requests",
+        label: "Tickets",
+        icon: ClipboardList,
+        badgeKey: "openTickets",
+      },
+      {
+        href: "/dashboard/admin/chats",
+        label: "Chat",
+        icon: MessageSquare,
+        badgeKey: "unreadMessages",
+      },
+      {
+        href: "/dashboard/admin/testimonials",
+        label: "Testimonials",
+        icon: Star,
+      },
+      {
+        href: "/dashboard/admin/maintenance",
+        label: "Maintenance",
+        icon: Wrench,
+      },
     ],
   },
 ];
@@ -293,6 +319,10 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { open: openCmd } = useCommandPalette();
 
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [glare, setGlare] = useState({ x: 50, y: 50 });
+  const [isHovering, setIsHovering] = useState(false);
+
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 1024);
     check();
@@ -374,6 +404,37 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     }
   }, [pathname, onMobileClose]);
 
+  // ✨ ADD THESE MOUSE HANDLERS (Before the `return`) ✨
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isMobile) return; // Don't tilt on mobile devices
+    if (!isHovering) setIsHovering(true);
+
+    const sidebar = e.currentTarget;
+    const rect = sidebar.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    // Micro-tilt: Max 2 degrees so the tall sidebar doesn't clip off screen
+    const rotateX = ((y - centerY) / centerY) * -2;
+    const rotateY = ((x - centerX) / centerX) * 2;
+
+    const glareX = (x / rect.width) * 100;
+    const glareY = (y / rect.height) * 100;
+
+    setTilt({ x: rotateX, y: rotateY });
+    setGlare({ x: glareX, y: glareY });
+  };
+
+  const handleMouseLeave = () => {
+    if (isMobile) return;
+    setIsHovering(false);
+    setTilt({ x: 0, y: 0 });
+    setGlare({ x: 50, y: 50 });
+  };
+
   return (
     <>
       {/* Mobile backdrop */}
@@ -405,6 +466,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         />
       )}
       <div
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
         className="flex flex-col overflow-hidden flex-shrink-0"
         style={{
           ...(isMobile
@@ -421,15 +484,43 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                 position: "relative",
                 height: "100vh",
                 width: collapsed ? 64 : 240,
+                transform: `perspective(2000px) rotateX(${tilt.x}deg) rotateY(${
+                  tilt.y
+                }deg) ${
+                  isHovering ? "scale3d(1.01, 1.01, 1.01)" : "scale3d(1, 1, 1)"
+                }`,
+                transformStyle: "preserve-3d",
+                zIndex: 50,
               }),
-          transition:
-            "width 0.28s cubic-bezier(0.4,0,0.2,1), transform 0.28s cubic-bezier(0.4,0,0.2,1)",
+          transition: isHovering
+            ? "width 0.28s cubic-bezier(0.4,0,0.2,1), box-shadow 0.2s ease"
+            : "width 0.28s cubic-bezier(0.4,0,0.2,1), transform 0.4s ease-out, box-shadow 0.4s ease",
           ...GLASS,
+          boxShadow:
+            isHovering && !isMobile
+              ? "0 30px 60px rgba(30,41,59,0.12), inset 0 2px 6px rgba(255,255,255,0.8)"
+              : GLASS.boxShadow,
         }}
       >
+        {!isMobile && (
+          <div
+            className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[5]"
+            style={{
+              background: `radial-gradient(circle at ${glare.x}% ${glare.y}%, rgba(255,255,255,0.4) 0%, transparent 60%)`,
+              mixBlendMode: "overlay",
+            }}
+          />
+        )}
+        {/* ✨ ADDED: AMBIENT GLOW ORBS (Behind the content) ✨ */}
+        <div className="absolute inset-0 pointer-events-none z-0">
+          <div className="absolute top-[-100px] left-[-100px] w-[300px] h-[300px] rounded-full bg-[#3A8DDE] opacity-40 blur-[70px]" />
+          <div className="absolute bottom-[-100px] right-[-100px] w-[350px] h-[350px] rounded-full bg-[#FF9800] opacity-30 blur-[80px]" />
+        </div>
         {/* Logo + collapse toggle */}
         <div
           style={{
+            position: "relative",
+            zIndex: 10,
             padding: collapsed && !isMobile ? "20px 0" : "20px 16px",
             borderBottom: "1px solid rgba(221,229,236,0.5)",
             display: "flex",
@@ -584,6 +675,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             <button
               onClick={openCmd}
               style={{
+                position: "relative",
+                zIndex: 10,
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
@@ -638,6 +731,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         {/* Nav */}
         <nav
           style={{
+            position: "relative",
+            zIndex: 10,
             flex: 1,
             overflowY: "auto",
             overflowX: "hidden",
