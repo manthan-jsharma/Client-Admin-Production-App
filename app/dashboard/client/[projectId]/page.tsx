@@ -975,9 +975,9 @@ export default function ClientProjectDetailPage() {
                       {d.description}
                     </p>
 
-                    {d.proofS3Key && (
+                    {d.proofVideoUrl && (
                       <a
-                        href={d.proofS3Key}
+                        href={d.proofVideoUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-2 rounded-lg px-3 py-2 mb-4 text-xs transition-colors"
@@ -988,9 +988,7 @@ export default function ClientProjectDetailPage() {
                         }}
                       >
                         <FileText className="w-3.5 h-3.5" />
-                        <span className="flex-1 truncate">
-                          {d.proofS3Key.split("/").pop()}
-                        </span>
+                        <span className="flex-1">Watch Loom Video</span>
                         <ExternalLink className="w-3 h-3 flex-shrink-0" />
                       </a>
                     )}

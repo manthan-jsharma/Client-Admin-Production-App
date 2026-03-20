@@ -34,13 +34,13 @@ export async function PATCH(
     const updates: Record<string, unknown> = {};
 
     if (payload.role === 'admin' || payload.role === 'support_admin') {
-      // Admin/Support admin can update: title, description, proofS3Key, adminNotes, status, deliveryNumber
-      const adminFields = ['title', 'description', 'proofS3Key', 'adminNotes', 'status', 'deliveryNumber'];
+      // Admin/Support admin can update: title, description, proofVideoUrl, adminNotes, status, deliveryNumber
+      const adminFields = ['title', 'description', 'proofVideoUrl', 'adminNotes', 'status', 'deliveryNumber'];
       for (const key of adminFields) {
         if (key in body) updates[key] = body[key];
       }
       // Auto-set to client_reviewing when proof is added or send-for-review action
-      if ((body.proofS3Key || body.action === 'send_for_review') && !body.status) {
+      if ((body.proofVideoUrl || body.action === 'send_for_review') && !body.status) {
         updates.status = 'client_reviewing';
       }
     } else {
@@ -58,7 +58,7 @@ export async function PATCH(
 
     if (payload.role === 'admin' || payload.role === 'support_admin') {
       // Admin/Support admin sent delivery for review → notify client via Telegram
-      if ((body.status === 'client_reviewing' || body.proofS3Key || body.action === 'send_for_review') && project.clientId) {
+      if ((body.status === 'client_reviewing' || body.proofVideoUrl || body.action === 'send_for_review') && project.clientId) {
         const clientUser = await getUserById(project.clientId);
         if (clientUser) {
           void tgDeliveryReady({

@@ -57,19 +57,19 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { title, description, deliveryNumber, proofS3Key, adminNotes } = body;
+    const { title, description, deliveryNumber, proofVideoUrl, adminNotes } = body;
 
     if (!title || !description || !deliveryNumber) {
       return NextResponse.json({ error: 'title, description, deliveryNumber are required' }, { status: 400 });
     }
 
     // Dev submissions start as 'submitted'; support_admin goes directly to client_reviewing;
-    // admin uses proofS3Key to determine status
+    // admin uses proofVideoUrl to determine status
     const status = payload.role === 'dev'
       ? 'submitted'
       : payload.role === 'support_admin'
       ? 'client_reviewing'
-      : (proofS3Key ? 'client_reviewing' : 'pending');
+      : (proofVideoUrl ? 'client_reviewing' : 'pending');
 
     const delivery: Delivery = {
       projectId,
@@ -77,7 +77,7 @@ export async function POST(
       title,
       description,
       status,
-      proofS3Key,
+      proofVideoUrl,
       adminNotes,
       createdByRole: (payload.role === 'dev' ? 'dev' : 'admin') as 'admin' | 'dev',
       createdById: payload.userId,

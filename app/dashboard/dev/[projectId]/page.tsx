@@ -24,7 +24,6 @@ import {
   ClipboardList,
   ExternalLink,
 } from "lucide-react";
-import { FileUploadField } from "@/components/ui/file-upload-field";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 
@@ -143,7 +142,7 @@ export default function DevProjectDetailPage() {
   const [deliveryForm, setDeliveryForm] = useState({
     title: "",
     description: "",
-    proofS3Key: "",
+    proofVideoUrl: "",
   });
   const [submittingDelivery, setSubmittingDelivery] = useState(false);
 
@@ -203,7 +202,7 @@ export default function DevProjectDetailPage() {
           title: deliveryForm.title,
           description: deliveryForm.description,
           deliveryNumber: deliveries.length + 1,
-          proofS3Key: deliveryForm.proofS3Key || undefined,
+          proofVideoUrl: deliveryForm.proofVideoUrl || undefined,
         }),
       });
       const result = await res.json();
@@ -957,16 +956,26 @@ export default function DevProjectDetailPage() {
                     />
                   </div>
                   <div>
-                    <FileUploadField
-                      label="Proof file (optional)"
-                      value={deliveryForm.proofS3Key}
-                      onChange={(url) =>
-                        setDeliveryForm((p) => ({ ...p, proofS3Key: url }))
+                    <label style={{ fontSize: 12, color: "#8A97A3", display: "block", marginBottom: 4 }}>
+                      Loom Video URL
+                    </label>
+                    <input
+                      type="url"
+                      value={deliveryForm.proofVideoUrl}
+                      onChange={(e) =>
+                        setDeliveryForm((p) => ({ ...p, proofVideoUrl: e.target.value }))
                       }
-                      folder="deliveries"
-                      accept=".zip,.pdf,video/*,image/*,application/pdf,application/zip"
-                      maxSizeMB={100}
-                      hint="ZIP, PDF, video, or image"
+                      placeholder="https://www.loom.com/share/..."
+                      style={{
+                        width: "100%",
+                        padding: "8px 12px",
+                        borderRadius: 10,
+                        border: "1px solid #2A3A4A",
+                        background: "#0F1923",
+                        color: "#E8EDF2",
+                        fontSize: 13,
+                        outline: "none",
+                      }}
                     />
                   </div>
                   <div style={{ display: "flex", gap: 10 }}>
@@ -1018,7 +1027,7 @@ export default function DevProjectDetailPage() {
                         setDeliveryForm({
                           title: "",
                           description: "",
-                          proofS3Key: "",
+                          proofVideoUrl: "",
                         });
                       }}
                       style={{

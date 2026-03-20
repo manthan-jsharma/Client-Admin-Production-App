@@ -94,7 +94,7 @@ export interface Delivery {
   title: string;
   description: string;
   status: 'pending' | 'submitted' | 'client_reviewing' | 'approved' | 'revision_requested';
-  proofS3Key?: string;      // admin uploads proof (S3)
+  proofVideoUrl?: string;   // Loom video URL for proof of delivery
   adminNotes?: string;
   clientFeedback?: string;
   signedOffAt?: Date;

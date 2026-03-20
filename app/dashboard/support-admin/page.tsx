@@ -10,7 +10,6 @@ import {
   CheckCircle2, Clock, RefreshCw, XCircle, ChevronDown, ChevronUp,
   AlertCircle, Plus, Send, Link2, Link2Off, ExternalLink,
 } from 'lucide-react';
-import { FileUploadField } from '@/components/ui/file-upload-field';
 
 const CARD: React.CSSProperties = {
   background: 'rgba(255,255,255,0.72)',
@@ -48,7 +47,7 @@ export default function SupportAdminPage() {
   // ── Projects ───────────────────────────────────────────────────────────────
   const [projects, setProjects] = useState<Project[]>([]);
   const [projLoading, setProjLoading] = useState(false);
-  const [deliveryForm, setDeliveryForm] = useState<{ projectId: string; title: string; description: string; deliveryNumber: string; proofS3Key: string }>({ projectId: '', title: '', description: '', deliveryNumber: '', proofS3Key: '' });
+  const [deliveryForm, setDeliveryForm] = useState<{ projectId: string; title: string; description: string; deliveryNumber: string; proofVideoUrl: string }>({ projectId: '', title: '', description: '', deliveryNumber: '', proofVideoUrl: '' });
   const [showDeliveryForm, setShowDeliveryForm] = useState(false);
   const [addingDelivery, setAddingDelivery] = useState(false);
 
@@ -133,12 +132,12 @@ export default function SupportAdminPage() {
     try {
       const res = await fetch(`/api/projects/${deliveryForm.projectId}/deliveries`, {
         method: 'POST', headers: h(),
-        body: JSON.stringify({ title: deliveryForm.title, description: deliveryForm.description, deliveryNumber: Number(deliveryForm.deliveryNumber), proofS3Key: deliveryForm.proofS3Key || undefined }),
+        body: JSON.stringify({ title: deliveryForm.title, description: deliveryForm.description, deliveryNumber: Number(deliveryForm.deliveryNumber), proofVideoUrl: deliveryForm.proofVideoUrl || undefined }),
       });
       const result = await res.json();
       if (result.success) {
         notify('success', 'Delivery added');
-        setDeliveryForm({ projectId: '', title: '', description: '', deliveryNumber: '', proofS3Key: '' });
+        setDeliveryForm({ projectId: '', title: '', description: '', deliveryNumber: '', proofVideoUrl: '' });
         setShowDeliveryForm(false);
       } else notify('error', result.error || 'Failed');
     } catch { notify('error', 'Network error'); }
@@ -297,12 +296,13 @@ export default function SupportAdminPage() {
                       <input value={deliveryForm.description} onChange={e => setDeliveryForm(p => ({ ...p, description: e.target.value }))} required style={INPUT} placeholder="Brief description" />
                     </div>
                     <div className="sm:col-span-2">
-                      <FileUploadField
-                        label="Proof file (optional)"
-                        value={deliveryForm.proofS3Key}
-                        onChange={(url) => setDeliveryForm(p => ({ ...p, proofS3Key: url }))}
-                        folder="deliveries"
-                        accept=".zip,.pdf,video/*,image/*,application/pdf,application/zip"
+                      <label className="block text-[11px] font-bold uppercase tracking-wider mb-1.5" style={{ color: '#8A97A3' }}>Loom Video URL</label>
+                      <input
+                        type="url"
+                        value={deliveryForm.proofVideoUrl}
+                        onChange={e => setDeliveryForm(p => ({ ...p, proofVideoUrl: e.target.value }))}
+                        placeholder="https://www.loom.com/share/..."
+                        style={INPUT}
                       />
                     </div>
                   </div>

@@ -161,7 +161,7 @@ export default function AdminProjectDetailPage() {
     title: "",
     description: "",
     deliveryNumber: "",
-    proofS3Key: "",
+    proofVideoUrl: "",
     adminNotes: "",
   });
   const [savingDelivery, setSavingDelivery] = useState(false);
@@ -486,7 +486,7 @@ export default function AdminProjectDetailPage() {
           title: "",
           description: "",
           deliveryNumber: "",
-          proofS3Key: "",
+          proofVideoUrl: "",
           adminNotes: "",
         });
         setShowDeliveryForm(false);
@@ -1364,16 +1364,24 @@ export default function AdminProjectDetailPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <FileUploadField
-                        label="Proof file (optional)"
-                        value={deliveryForm.proofS3Key}
-                        onChange={(url) =>
-                          setDeliveryForm((f) => ({ ...f, proofS3Key: url }))
+                      <label
+                        className="text-xs mb-1 block"
+                        style={{ color: "#5F6B76" }}
+                      >
+                        Loom Video URL
+                      </label>
+                      <Input
+                        value={deliveryForm.proofVideoUrl}
+                        onChange={(e) =>
+                          setDeliveryForm((f) => ({ ...f, proofVideoUrl: e.target.value }))
                         }
-                        folder="deliveries"
-                        accept=".zip,.pdf,video/*,image/*,application/pdf,application/zip"
-                        maxSizeMB={100}
-                        hint="ZIP, PDF, video, or image"
+                        placeholder="https://www.loom.com/share/..."
+                        className="rounded-xl h-9 text-sm"
+                        style={{
+                          background: "rgba(58,141,222,0.06)",
+                          borderColor: "#DDE5EC",
+                          color: "#1E2A32",
+                        }}
                       />
                     </div>
                     <div>
@@ -1510,7 +1518,7 @@ export default function AdminProjectDetailPage() {
                             onClick={() =>
                               updateDeliveryStatus(d._id!, {
                                 status: "client_reviewing",
-                                proofS3Key: d.proofS3Key,
+                                proofVideoUrl: d.proofVideoUrl,
                               })
                             }
                             className="btn-primary rounded-xl h-7 px-3 text-xs font-medium transition-all active:scale-95"
@@ -1607,17 +1615,17 @@ export default function AdminProjectDetailPage() {
                     )}
 
                     <div className="grid grid-cols-2 gap-3 text-xs">
-                      {d.proofS3Key && (
+                      {d.proofVideoUrl && (
                         <div style={{ color: "#8A97A3" }}>
                           Proof:{" "}
                           <a
-                            href={d.proofS3Key}
+                            href={d.proofVideoUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="font-mono text-[11px] transition-colors"
+                            className="text-[11px] transition-colors"
                             style={{ color: "#3A8DDE" }}
                           >
-                            {d.proofS3Key.split("/").pop()}↗
+                            Watch Loom ↗
                           </a>
                         </div>
                       )}

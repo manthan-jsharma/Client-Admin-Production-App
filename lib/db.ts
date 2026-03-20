@@ -64,7 +64,7 @@ function mapDelivery(row: Record<string, unknown>): Delivery {
     title: row.title as string,
     description: row.description as string,
     status: row.status as Delivery['status'],
-    proofS3Key: n(row.proof_s3_key as string | null),
+    proofVideoUrl: n(row.proof_s3_key as string | null),
     adminNotes: n(row.admin_notes as string | null),
     clientFeedback: n(row.client_feedback as string | null),
     signedOffAt: row.signed_off_at ? new Date(row.signed_off_at as string) : undefined,
@@ -396,7 +396,7 @@ function toDeliveryUpdateRow(d: Partial<Delivery>): Record<string, unknown> {
   if (d.title !== undefined) row.title = d.title;
   if (d.description !== undefined) row.description = d.description;
   if (d.status !== undefined) row.status = d.status;
-  if (d.proofS3Key !== undefined) row.proof_s3_key = d.proofS3Key ?? null;
+  if (d.proofVideoUrl !== undefined) row.proof_s3_key = d.proofVideoUrl ?? null;
   if (d.adminNotes !== undefined) row.admin_notes = d.adminNotes ?? null;
   if (d.clientFeedback !== undefined) row.client_feedback = d.clientFeedback ?? null;
   if (d.signedOffAt !== undefined) row.signed_off_at = d.signedOffAt ? new Date(d.signedOffAt).toISOString() : null;
@@ -1399,7 +1399,7 @@ export async function createDelivery(delivery: Delivery): Promise<Delivery> {
     title: delivery.title,
     description: delivery.description,
     status: delivery.status ?? 'pending',
-    proof_s3_key: delivery.proofS3Key ?? null,
+    proof_s3_key: delivery.proofVideoUrl ?? null,
     admin_notes: delivery.adminNotes ?? null,
     client_feedback: delivery.clientFeedback ?? null,
     signed_off_at: delivery.signedOffAt ? new Date(delivery.signedOffAt).toISOString() : null,
