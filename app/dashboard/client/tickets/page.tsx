@@ -223,7 +223,22 @@ export default function ClientTicketsPage() {
                       )}
 
                       {ticket.status !== 'closed' && (
-                        <div className="mt-3 flex justify-end">
+                        <div className="mt-3 flex justify-end gap-2">
+                          {ticket.status !== 'resolved' && (
+                            <button
+                              onClick={async () => {
+                                const res = await fetch(`/api/tickets/${ticket._id}`, { method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'resolved' }) });
+                                const result = await res.json();
+                                if (result.success) setTickets(prev => prev.map(t => t._id === ticket._id ? { ...t, status: 'resolved' as const } : t));
+                              }}
+                              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all active:scale-95"
+                              style={{ background: 'rgba(107,207,122,0.08)', color: '#6BCF7A', border: '1px solid #a7f3d0' }}
+                              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(107,207,122,0.15)'; }}
+                              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(107,207,122,0.08)'; }}
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Mark Resolved
+                            </button>
+                          )}
                           <button
                             onClick={() => closeTicket(ticket._id!)}
                             className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all active:scale-95"

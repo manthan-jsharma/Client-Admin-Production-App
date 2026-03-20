@@ -39,7 +39,7 @@ interface ChatThread {
   lastMessage: {
     message: string;
     senderName: string;
-    senderRole: "admin" | "client" | "ai" | "dev";
+    senderRole: "admin" | "client" | "ai" | "dev" | "support_admin";
     createdAt: Date;
   } | null;
   projectStatus: string;
@@ -188,6 +188,8 @@ function MessageRow({ msg, adminId }: { msg: ChatMessage; adminId: string }) {
             ? "Client"
             : msg.senderRole === "dev"
             ? "Dev"
+            : msg.senderRole === "support_admin"
+            ? "Support"
             : "Admin"}
         </span>
 
@@ -634,7 +636,7 @@ export default function AdminChatsPage() {
                   lastMessage: {
                     message: newMessage.trim(),
                     senderName: user?.name ?? "Admin",
-                    senderRole: "admin",
+                    senderRole: (user?.role ?? "admin") as "admin" | "support_admin",
                     createdAt: new Date(),
                   },
                 }
