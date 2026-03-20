@@ -1,6 +1,6 @@
 # Project Management Platform
 
-A comprehensive B2B project management and client communication platform built with Next.js, TypeScript, and React.
+A comprehensive B2B project management and client communication platform built with Next.js, TypeScript, and React, websocket, PostgreSql, Open AI 
 
 ## Features
 
