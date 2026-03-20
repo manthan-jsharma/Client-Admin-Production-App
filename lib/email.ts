@@ -541,3 +541,58 @@ export async function sendDevAccountCreated(dev: {
   );
   await send(dev.email, "Your AI APP LABS developer account is ready", html);
 }
+
+// ─── 17. Support Admin Account Created ───────────────────────────────────────
+
+export async function sendSupportAdminCreated(u: { name: string; email: string; password: string }) {
+  const html = wrap(
+    "Your Support Admin Account is Ready",
+    `
+    ${heading(`Welcome, ${u.name}!`)}
+    ${para("You've been added as a <strong>Support Admin</strong> on AI APP LABS. You can log in immediately using the credentials below.")}
+    ${detailTable(
+      detail("Email", u.email) +
+      detail("Password", `<code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:13px;">${u.password}</code>`)
+    )}
+    ${infoBox("You can handle tickets, projects, deliveries and chats. Please change your password after first login.", "#f0fdf4", "#a7f3d0", "#065f46")}
+    ${btn(`${APP}/login`, "Log In Now")}
+  `
+  );
+  await send(u.email, "Your AI APP LABS support admin account is ready", html);
+}
+
+// ─── 18. Dev Account Updated ──────────────────────────────────────────────────
+
+export async function sendDevAccountUpdated(dev: { name: string; email: string; newPassword?: string }) {
+  const html = wrap(
+    "Your Developer Account Has Been Updated",
+    `
+    ${heading(`Hi ${dev.name},`)}
+    ${para("Your developer account on <strong>AI APP LABS</strong> has been updated by the admin. Your current login details are below.")}
+    ${detailTable(
+      detail("Email", dev.email) +
+      (dev.newPassword ? detail("New Password", `<code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:13px;">${dev.newPassword}</code>`) : '')
+    )}
+    ${btn(`${APP}/login`, "Log In to Developer Portal")}
+  `
+  );
+  await send(dev.email, "Your AI APP LABS developer account has been updated", html);
+}
+
+// ─── 19. Support Admin Account Updated ───────────────────────────────────────
+
+export async function sendSupportAdminUpdated(u: { name: string; email: string; newPassword?: string }) {
+  const html = wrap(
+    "Your Support Admin Account Has Been Updated",
+    `
+    ${heading(`Hi ${u.name},`)}
+    ${para("Your support admin account on <strong>AI APP LABS</strong> has been updated by the admin. Your current login details are below.")}
+    ${detailTable(
+      detail("Email", u.email) +
+      (u.newPassword ? detail("New Password", `<code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:13px;">${u.newPassword}</code>`) : '')
+    )}
+    ${btn(`${APP}/login`, "Log In Now")}
+  `
+  );
+  await send(u.email, "Your AI APP LABS support admin account has been updated", html);
+}

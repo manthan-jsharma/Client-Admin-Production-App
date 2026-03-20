@@ -31,6 +31,7 @@ import {
   X,
   Code2,
   Sparkles,
+  HeadphonesIcon,
 } from "lucide-react";
 
 type BadgeKey = "pendingClients" | "openTickets" | "unreadMessages";
@@ -116,6 +117,20 @@ const clientMenuGroups: MenuGroup[] = [
         label: "My Profile",
         icon: UserCircle,
       },
+    ],
+  },
+];
+
+const supportAdminMenuGroups: MenuGroup[] = [
+  {
+    label: "Support",
+    items: [
+      { href: "/dashboard/support-admin", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/dashboard/admin/projects", label: "Projects", icon: FolderKanban },
+      { href: "/dashboard/admin/requests", label: "Tickets", icon: ClipboardList, badgeKey: "openTickets" },
+      { href: "/dashboard/admin/chats", label: "Chat", icon: MessageSquare, badgeKey: "unreadMessages" },
+      { href: "/dashboard/admin/testimonials", label: "Testimonials", icon: Star },
+      { href: "/dashboard/admin/maintenance", label: "Maintenance", icon: Wrench },
     ],
   },
 ];
@@ -206,6 +221,11 @@ const adminMenuGroups: MenuGroup[] = [
         href: "/dashboard/admin/settings",
         label: "Settings",
         icon: SlidersHorizontal,
+      },
+      {
+        href: "/dashboard/admin/support-admins",
+        label: "Support Admins",
+        icon: HeadphonesIcon,
       },
     ],
   },
@@ -318,6 +338,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const groups =
     user.role === "admin"
       ? adminMenuGroups
+      : user.role === "support_admin"
+      ? supportAdminMenuGroups
       : user.role === "dev"
       ? devMenuGroups
       : clientMenuGroups;

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Project, User } from '@/lib/types';
@@ -36,6 +37,8 @@ const STATUS_STYLES: Record<string, { color: string; bg: string; border: string 
 
 export default function AdminProjectsPage() {
   const router = useRouter();
+  const { user } = useAuth();
+  const isSupportAdmin = user?.role === 'support_admin';
   const [projects, setProjects] = useState<Project[]>([]);
   const [clients, setClients] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -141,6 +144,12 @@ export default function AdminProjectsPage() {
               <div>
                 <h2 className="text-sm font-semibold" style={{ color: '#1E2A32' }}>New Project</h2>
                 <p className="text-xs mt-0.5" style={{ color: '#8A97A3' }}>Fill in the details below to create a project</p>
+                {isSupportAdmin && (
+                  <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-xl text-xs font-medium" style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#b45309' }}>
+                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                    Confirm with your admin that you will be creating a new project for a client
+                  </div>
+                )}
               </div>
             </div>
             <form onSubmit={handleCreate} className="p-6 space-y-5">

@@ -68,7 +68,11 @@ export async function GET(
           { status: 403 }
         );
       }
-    } else if (projectId !== `inbox_${payload.userId}`) {
+    } else if (
+      projectId !== `inbox_${payload.userId}` &&
+      payload.role !== "admin" &&
+      payload.role !== "support_admin"
+    ) {
       return NextResponse.json(
         { success: false, error: "Forbidden" },
         { status: 403 }
@@ -180,7 +184,11 @@ export async function POST(
           { status: 403 }
         );
       }
-    } else if (projectId !== `inbox_${payload.userId}`) {
+    } else if (
+      projectId !== `inbox_${payload.userId}` &&
+      payload.role !== "admin" &&
+      payload.role !== "support_admin"
+    ) {
       return NextResponse.json(
         { success: false, error: "Forbidden" },
         { status: 403 }
@@ -242,7 +250,7 @@ export async function POST(
       projectId,
       senderId: payload.userId,
       senderName: sender.name,
-      senderRole: payload.role as "admin" | "client" | "dev",
+      senderRole: (payload.role === 'support_admin' ? 'support_admin' : payload.role) as ChatMessage['senderRole'],
       message: message?.trim() || "",
       type: type as ChatMessage["type"],
       attachments: attachments || undefined,
@@ -277,6 +285,10 @@ export async function POST(
           } else if (handle === "@dev") {
             targetId = project?.assignedDevs?.[0];
             mentionedRole = "dev";
+          } else if (handle === "@support") {
+            const sa = allUsers.find((u) => u.role === "support_admin");
+            targetId = sa?._id;
+            mentionedRole = "support_admin";
           } else {
             const slug = handle.slice(1).toLowerCase();
             const found = allUsers.find(
@@ -303,7 +315,9 @@ export async function POST(
     // ── Email notifications ─────────────────────────────────────────────────
     // Notify the other party about the new message (skip AI messages)
     if (payload.role === "client") {
-      // Client → admin: notify admin
+      // Client → admin + support admins: notify
+      const allUsersForNotify = await getAllUsers();
+      const supportAdmins = allUsersForNotify.filter(u => u.role === 'support_admin');
 
       // Telegram to admin — throttled
       void tgChatMessage({
@@ -314,6 +328,18 @@ export async function POST(
         recipientId: project?.adminId ?? "",
         messagePreview: message?.trim() || "[attachment]",
       });
+
+      // Telegram to each support admin — throttled
+      for (const sa of supportAdmins) {
+        void tgChatMessage({
+          projectId,
+          projectName: project?.name ?? "General Chat",
+          senderName: sender.name,
+          senderRole: "client",
+          recipientId: sa._id as string,
+          messagePreview: message?.trim() || "[attachment]",
+        });
+      }
 
       // Service inquiry detection: message auto-sent from services page contains this phrase
       if (
@@ -331,7 +357,10 @@ export async function POST(
         });
       }
     } else if (payload.role === "dev") {
-      // Dev → admin: notify admin via Telegram (throttled)
+      // Dev → admin + support admins: notify
+      const allUsersForNotify = await getAllUsers();
+      const supportAdmins = allUsersForNotify.filter(u => u.role === 'support_admin');
+
       void tgChatMessage({
         projectId,
         projectName: project?.name ?? "General Chat",
@@ -340,8 +369,19 @@ export async function POST(
         recipientId: project?.adminId ?? "",
         messagePreview: message?.trim() || "[attachment]",
       });
-    } else if (payload.role === "admin") {
-      // Admin → client: look up client email and notify
+
+      for (const sa of supportAdmins) {
+        void tgChatMessage({
+          projectId,
+          projectName: project?.name ?? "General Chat",
+          senderName: sender.name,
+          senderRole: "dev",
+          recipientId: sa._id as string,
+          messagePreview: message?.trim() || "[attachment]",
+        });
+      }
+    } else if (payload.role === "admin" || payload.role === "support_admin") {
+      // Admin/Support admin → client: look up client email and notify
       const clientUser = project?.clientId
         ? await getUserById(project.clientId)
         : null;

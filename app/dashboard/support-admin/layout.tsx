@@ -10,14 +10,10 @@ import { Menu } from 'lucide-react';
 
 function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  return (
-    <div key={pathname} className="page-enter flex-1 overflow-y-auto">
-      {children}
-    </div>
-  );
+  return <div key={pathname} className="page-enter flex-1 overflow-y-auto">{children}</div>;
 }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function SupportAdminLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user, isLoading } = useAuth();
   const router = useRouter();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -25,29 +21,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (!isLoading) {
       if (!isAuthenticated) router.push('/login');
-      else if (user && user.role !== 'admin' && user.role !== 'support_admin') router.push('/dashboard/client');
+      else if (user && user.role !== 'support_admin') {
+        if (user.role === 'admin') router.push('/dashboard/admin');
+        else if (user.role === 'dev') router.push('/dashboard/dev');
+        else router.push('/dashboard/client');
+      }
     }
   }, [isAuthenticated, user, isLoading, router]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#E9EEF2' }}>
-        <div className="flex flex-col items-center gap-5">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden"
-            style={{ background: 'rgba(58,141,222,0.12)', border: '1px solid rgba(58,141,222,0.2)' }}
-          >
-            <img src="/icon.svg" alt="AI APP LABS" className="w-7 h-7 object-contain" />
-          </div>
-          <div className="w-5 h-5 rounded-full border-2 animate-spin"
-            style={{ borderColor: 'rgba(58,141,222,0.2)', borderTopColor: '#3A8DDE' }}
-          />
-        </div>
+        <div className="w-5 h-5 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(58,141,222,0.2)', borderTopColor: '#3A8DDE' }} />
       </div>
     );
   }
 
-  if (!isAuthenticated || !user || (user.role !== 'admin' && user.role !== 'support_admin')) return null;
+  if (!isAuthenticated || !user || user.role !== 'support_admin') return null;
 
   return (
     <ToastProvider>
@@ -55,7 +45,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex h-screen" style={{ background: '#E9EEF2' }}>
           <Sidebar mobileOpen={mobileNavOpen} onMobileClose={() => setMobileNavOpen(false)} />
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            {/* Mobile top bar */}
             <div className="lg:hidden flex items-center gap-3 px-4 h-14 flex-shrink-0" style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(221,229,236,0.7)' }}>
               <button onClick={() => setMobileNavOpen(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 10, background: 'rgba(58,141,222,0.08)', border: '1px solid rgba(58,141,222,0.15)', cursor: 'pointer' }}>
                 <Menu size={18} color="#3A8DDE" />
@@ -63,7 +52,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <img src="/icon.svg" alt="" style={{ width: 22, height: 22 }} />
                 <span style={{ fontSize: 13, fontWeight: 800, color: '#1E2A32', letterSpacing: '-0.02em' }}>AI APP LABS</span>
-                <span style={{ fontSize: 10, fontWeight: 700, color: user?.role === 'support_admin' ? '#059669' : '#3A8DDE', background: user?.role === 'support_admin' ? 'rgba(5,150,105,0.1)' : 'rgba(58,141,222,0.1)', border: `1px solid ${user?.role === 'support_admin' ? 'rgba(5,150,105,0.2)' : 'rgba(58,141,222,0.2)'}`, borderRadius: 99, padding: '2px 8px' }}>{user?.role === 'support_admin' ? 'Support' : 'Admin'}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#059669', background: 'rgba(5,150,105,0.1)', border: '1px solid rgba(5,150,105,0.2)', borderRadius: 99, padding: '2px 8px' }}>Support</span>
               </div>
             </div>
             <PageTransition>{children}</PageTransition>

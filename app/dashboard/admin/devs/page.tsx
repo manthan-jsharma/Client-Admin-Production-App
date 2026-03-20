@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { User, Project } from '@/lib/types';
 import {
   Code2, Plus, X, ChevronDown, ChevronUp, CheckCircle2, AlertCircle,
-  Mail, Calendar, FolderKanban, UserPlus, Check, Search, Trash2,
+  Mail, Calendar, FolderKanban, UserPlus, Check, Search, Trash2, Pencil, Save,
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -52,6 +52,8 @@ export default function AdminDevsPage() {
   const [devProjects, setDevProjects] = useState<Record<string, string[]>>({});
   const [loadingDevProjects, setLoadingDevProjects] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [editDev, setEditDev] = useState<{ id: string; name: string; email: string; password: string } | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [assigningProject, setAssigningProject] = useState<string | null>(null);
   const [projectSearch, setProjectSearch] = useState('');
 
@@ -200,6 +202,26 @@ export default function AdminDevsPage() {
     } finally {
       setAssigningProject(null);
     }
+  };
+
+  const handleEditDev = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editDev) return;
+    setIsSavingEdit(true);
+    try {
+      const res = await fetch(`/api/admin/devs/${editDev.id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editDev.name, email: editDev.email, ...(editDev.password && { password: editDev.password }) }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        setDevs(prev => prev.map(d => d._id === editDev.id ? { ...d, name: editDev.name, email: editDev.email } : d));
+        notify('success', 'Developer updated');
+        setEditDev(null);
+      } else notify('error', result.error || 'Failed to update');
+    } catch { notify('error', 'Network error'); }
+    finally { setIsSavingEdit(false); }
   };
 
   const handleDeleteDev = async (devId: string) => {
@@ -399,6 +421,16 @@ export default function AdminDevsPage() {
                           {isExpanded ? <ChevronUp style={{ width: 13, height: 13 }} /> : <ChevronDown style={{ width: 13, height: 13 }} />}
                           Manage
                         </button>
+                        {/* Edit button */}
+                        <button
+                          onClick={() => setEditDev({ id: dev._id as string, name: dev.name, email: dev.email, password: '' })}
+                          title="Edit developer"
+                          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '7px 9px', borderRadius: 9, background: 'rgba(58,141,222,0.06)', color: '#8A97A3', border: '1px solid #DDE5EC', cursor: 'pointer', transition: 'all 0.12s' }}
+                          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#eff8ff'; (e.currentTarget as HTMLElement).style.color = '#3A8DDE'; (e.currentTarget as HTMLElement).style.borderColor = '#c8dff0'; }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(58,141,222,0.06)'; (e.currentTarget as HTMLElement).style.color = '#8A97A3'; (e.currentTarget as HTMLElement).style.borderColor = '#DDE5EC'; }}
+                        >
+                          <Pencil style={{ width: 13, height: 13 }} />
+                        </button>
                         {/* Delete button */}
                         <button
                           onClick={() => setConfirmDeleteId(dev._id as string)}
@@ -499,6 +531,38 @@ export default function AdminDevsPage() {
       </div>
 
       {/* Delete confirm dialog */}
+      {/* Edit modal */}
+      {editDev && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20 }}>
+          <div style={{ ...CARD, maxWidth: 380, width: '100%', padding: 28 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1E2A32' }}>Edit Developer</h3>
+              <button onClick={() => setEditDev(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8A97A3' }}><X style={{ width: 16, height: 16 }} /></button>
+            </div>
+            <form onSubmit={handleEditDev} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#8A97A3', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Name</label>
+                <input value={editDev.name} onChange={e => setEditDev(p => p && ({ ...p, name: e.target.value }))} required style={INPUT_STYLE} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#8A97A3', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Email</label>
+                <input type="email" value={editDev.email} onChange={e => setEditDev(p => p && ({ ...p, email: e.target.value }))} required style={INPUT_STYLE} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#8A97A3', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>New Password <span style={{ color: '#8A97A3', fontWeight: 400, textTransform: 'none' }}>(leave blank to keep)</span></label>
+                <input type="password" value={editDev.password} onChange={e => setEditDev(p => p && ({ ...p, password: e.target.value }))} placeholder="Enter new password" style={INPUT_STYLE} />
+              </div>
+              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                <button type="submit" disabled={isSavingEdit} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 13, fontWeight: 600, padding: '9px 0', borderRadius: 10, background: '#3A8DDE', color: '#fff', border: 'none', cursor: 'pointer', opacity: isSavingEdit ? 0.6 : 1 }}>
+                  <Save style={{ width: 13, height: 13 }} />{isSavingEdit ? 'Saving…' : 'Save Changes'}
+                </button>
+                <button type="button" onClick={() => setEditDev(null)} style={{ fontSize: 13, fontWeight: 500, padding: '9px 16px', borderRadius: 10, background: 'rgba(58,141,222,0.06)', color: '#334155', border: '1px solid #DDE5EC', cursor: 'pointer' }}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {confirmDeleteId && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 20 }}>
           <div style={{ ...CARD, maxWidth: 380, width: '100%', padding: 28, textAlign: 'center' }}>

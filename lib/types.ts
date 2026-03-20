@@ -3,7 +3,7 @@ export interface User {
   _id?: string;
   email: string;
   password?: string;
-  role: 'admin' | 'client' | 'dev';
+  role: 'admin' | 'client' | 'dev' | 'support_admin';
   name: string;
   phone?: string;
   company?: string;
@@ -176,7 +176,7 @@ export interface ChatMessage {
   projectId: string;
   senderId: string;
   senderName: string;
-  senderRole: 'admin' | 'client' | 'ai' | 'dev';
+  senderRole: 'admin' | 'client' | 'ai' | 'dev' | 'support_admin';
   message: string;
   attachments?: ChatAttachment[];
   type: 'text' | 'voice' | 'video' | 'file' | 'ticket';

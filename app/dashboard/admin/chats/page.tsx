@@ -50,6 +50,7 @@ const MENTION_OPTIONS = [
   { handle: "@AI", label: "AI Assistant", color: "#8b5cf6" },
   { handle: "@client", label: "Client", color: "#f59e0b" },
   { handle: "@dev", label: "Developer", color: "#16a34a" },
+  { handle: "@support", label: "Support Admin", color: "#059669" },
 ];
 
 function MentionPicker({
@@ -292,13 +293,11 @@ function MessageRow({ msg, adminId }: { msg: ChatMessage; adminId: string }) {
                 );
               }
               const color =
-                lower === "@ai"
-                  ? "#f59e0b"
-                  : lower === "@client"
-                  ? "#f59e0b"
-                  : lower === "@dev"
-                  ? "#f59e0"
-                  : "#f59e0";
+                lower === "@ai"      ? "#8b5cf6"
+                : lower === "@client"  ? "#5F6B76"
+                : lower === "@dev"     ? "#16a34a"
+                : lower === "@support" ? "#059669"
+                : "#5F6B76";
               return (
                 <span
                   key={i}

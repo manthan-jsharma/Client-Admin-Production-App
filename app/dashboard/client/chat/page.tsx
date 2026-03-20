@@ -151,38 +151,28 @@ function TicketBubble({
 
 // ─── @mention renderer ───────────────────────────────────────────────────────
 
-function renderWithMentions(text: string) {
+function renderWithMentions(text: string, isOwn = false) {
   return text.split(/(@\w+)/g).map((part, i) => {
     if (!part.startsWith("@")) return part;
     const lower = part.toLowerCase();
 
-    // Premium Color Mapping
+    if (isOwn) {
+      return (
+        <span key={i} style={{ color: "rgba(255,255,255,0.95)", fontWeight: 700, background: "rgba(255,255,255,0.2)", borderRadius: 5, padding: "1px 5px" }}>
+          {part}
+        </span>
+      );
+    }
+
     const color =
-      lower === "@ai"
-        ? "#FFFF00" // Vibrant AI Purple
-        : lower === "@admin"
-        ? "#FAFA33" // AI APP LABS Brand Blue
-        : lower === "@dev"
-        ? "#FFFF00" // Success Green
-        : "#f59e0b"; // Amber for others
+      lower === "@ai"      ? "#8b5cf6"
+      : lower === "@admin"   ? "#3A8DDE"
+      : lower === "@dev"     ? "#16a34a"
+      : lower === "@support" ? "#059669"
+      : "#5F6B76";
 
     return (
-      <span
-        key={i}
-        style={{
-          color,
-          fontWeight: 700,
-          background: `${color}12`, // Very subtle background
-          border: `1px solid ${color}30`, // Matching subtle border
-          borderRadius: 6,
-          padding: "1px 6px",
-          margin: "0 1px",
-          fontSize: "0.95em",
-          display: "inline-flex",
-          alignItems: "center",
-          verticalAlign: "middle",
-        }}
-      >
+      <span key={i} style={{ color, fontWeight: 700, background: `${color}12`, border: `1px solid ${color}30`, borderRadius: 6, padding: "1px 6px", margin: "0 1px", fontSize: "0.95em", display: "inline-flex", alignItems: "center", verticalAlign: "middle" }}>
         {part}
       </span>
     );
@@ -192,8 +182,9 @@ function renderWithMentions(text: string) {
 
 const MENTION_OPTIONS = [
   { handle: "@AI", label: "AI Assistant", color: "#8b5cf6" },
-  { handle: "@admin", label: "Admin", color: "#FFA500" },
+  { handle: "@admin", label: "Admin", color: "#3A8DDE" },
   { handle: "@dev", label: "Developer", color: "#16a34a" },
+  { handle: "@support", label: "Support Admin", color: "#059669" },
 ];
 
 function MentionPicker({
@@ -351,7 +342,7 @@ function MessageRow({ msg, userId }: { msg: ChatMessage; userId: string }) {
                   }
             }
           >
-            {renderWithMentions(msg.message)}
+            {renderWithMentions(msg.message, isOwn)}
           </div>
         )}
 

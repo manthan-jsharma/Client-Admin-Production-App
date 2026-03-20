@@ -31,7 +31,7 @@ export default function LoginPage() {
     if (!storedUser) { setIsLoading(false); return; }
     const parsedUser = JSON.parse(storedUser);
     if (parsedUser.status === 'pending') { router.push('/pending'); return; }
-    const dest = parsedUser.role === 'admin' ? '/dashboard/admin' : parsedUser.role === 'dev' ? '/dashboard/dev' : '/dashboard/client';
+    const dest = parsedUser.role === 'admin' ? '/dashboard/admin' : parsedUser.role === 'support_admin' ? '/dashboard/support-admin' : parsedUser.role === 'dev' ? '/dashboard/dev' : '/dashboard/client';
     router.push(dest);
   };
 

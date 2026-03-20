@@ -13,7 +13,7 @@ export async function GET(
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const decoded = verifyToken(token);
-    if (!decoded || decoded.role !== 'admin') {
+    if (!decoded || !['admin', 'support_admin'].includes(decoded.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -37,7 +37,7 @@ export async function PATCH(
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const decoded = verifyToken(token);
-    if (!decoded || decoded.role !== 'admin') {
+    if (!decoded || !['admin', 'support_admin'].includes(decoded.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

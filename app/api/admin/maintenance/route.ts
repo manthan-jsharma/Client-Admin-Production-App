@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const payload = verifyToken(token);
-    if (!payload || payload.role !== 'admin') {
+    if (!payload || !['admin', 'support_admin'].includes(payload.role)) {
       return NextResponse.json({ error: 'Forbidden — admin only' }, { status: 403 });
     }
 

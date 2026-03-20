@@ -536,6 +536,17 @@ export async function adminUpdateClient(id: string, updates: Partial<User>): Pro
   return mapUser(data as Record<string, unknown>);
 }
 
+export async function adminUpdateStaff(id: string, updates: { name?: string; email?: string; password?: string }): Promise<User | null> {
+  const row: Record<string, unknown> = {};
+  if (updates.name) row.name = updates.name;
+  if (updates.email) row.email = updates.email;
+  if (updates.password) row.password = updates.password;
+  if (Object.keys(row).length === 0) return null;
+  const { data, error } = await supabase.from('users').update(row).eq('id', id).select('*').single();
+  if (error || !data) return null;
+  return mapUser(data as Record<string, unknown>);
+}
+
 // ─── Client Approval Operations ──────────────────────────────────────────────
 
 export async function approveClient(userId: string): Promise<User | null> {
@@ -620,11 +631,19 @@ export async function getProjectsByUserId(userId: string, role: string): Promise
     return (data as Record<string, unknown>[]).map(mapProject);
   }
 
-  const column = role === 'admin' ? 'admin_id' : 'client_id';
+  if (role === 'admin' || role === 'support_admin') {
+    const { data, error } = await supabase
+      .from('projects')
+      .select(PROJECT_SELECT)
+      .order('created_at', { ascending: false });
+    if (error || !data) return [];
+    return (data as Record<string, unknown>[]).map(mapProject);
+  }
+
   const { data, error } = await supabase
     .from('projects')
     .select(PROJECT_SELECT)
-    .eq(column, userId)
+    .eq('client_id', userId)
     .order('created_at', { ascending: false });
 
   if (error || !data) return [];
@@ -1627,6 +1646,19 @@ export async function updateMaintenanceFeedback(
 
   if (error || !data) return null;
   return mapMaintenanceFeedback(data as Record<string, unknown>);
+}
+
+// ─── Support Admin Operations ─────────────────────────────────────────────────
+
+export async function getAllSupportAdmins(): Promise<User[]> {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('role', 'support_admin')
+    .order('created_at', { ascending: false });
+
+  if (error || !data) return [];
+  return (data as Record<string, unknown>[]).map(mapUser);
 }
 
 // ─── Dev Operations ───────────────────────────────────────────────────────────

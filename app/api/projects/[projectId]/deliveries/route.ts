@@ -43,8 +43,8 @@ export async function POST(
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const payload = verifyToken(token);
-    if (!payload || (payload.role !== 'admin' && payload.role !== 'dev')) {
-      return NextResponse.json({ error: 'Forbidden — admin or dev only' }, { status: 403 });
+    if (!payload || !['admin', 'support_admin', 'dev'].includes(payload.role)) {
+      return NextResponse.json({ error: 'Forbidden — admin, support admin or dev only' }, { status: 403 });
     }
 
     const { projectId } = await params;
@@ -63,9 +63,12 @@ export async function POST(
       return NextResponse.json({ error: 'title, description, deliveryNumber are required' }, { status: 400 });
     }
 
-    // Dev submissions start as 'submitted'; admin uses proofS3Key to determine status
+    // Dev submissions start as 'submitted'; support_admin goes directly to client_reviewing;
+    // admin uses proofS3Key to determine status
     const status = payload.role === 'dev'
       ? 'submitted'
+      : payload.role === 'support_admin'
+      ? 'client_reviewing'
       : (proofS3Key ? 'client_reviewing' : 'pending');
 
     const delivery: Delivery = {
@@ -76,7 +79,7 @@ export async function POST(
       status,
       proofS3Key,
       adminNotes,
-      createdByRole: payload.role as 'admin' | 'dev',
+      createdByRole: (payload.role === 'dev' ? 'dev' : 'admin') as 'admin' | 'dev',
       createdById: payload.userId,
     };
 

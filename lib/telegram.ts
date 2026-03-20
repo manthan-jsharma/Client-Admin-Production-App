@@ -327,7 +327,7 @@ export async function tgChatMessage(params: {
   projectId: string;
   projectName: string;
   senderName: string;
-  senderRole: 'admin' | 'client' | 'dev';
+  senderRole: 'admin' | 'client' | 'dev' | 'support_admin';
   recipientId: string;    // userId of the person who should be notified
   messagePreview: string;
 }): Promise<void> {
@@ -343,8 +343,8 @@ export async function tgChatMessage(params: {
     ? params.messagePreview.slice(0, 80) + '…'
     : params.messagePreview;
 
-  const roleLabel = params.senderRole === 'admin' ? 'Admin' : params.senderRole === 'dev' ? 'Developer' : 'Client';
-  const chatPath = params.senderRole === 'admin' ? '/dashboard/client/chat' : '/dashboard/admin/chats';
+  const roleLabel = params.senderRole === 'admin' || params.senderRole === 'support_admin' ? 'Admin' : params.senderRole === 'dev' ? 'Developer' : 'Client';
+  const chatPath = params.senderRole === 'admin' || params.senderRole === 'support_admin' ? '/dashboard/client/chat' : '/dashboard/admin/chats';
 
   const text = [
     `💬 ${bold('New message')} in ${bold(params.projectName)}`,
