@@ -318,14 +318,16 @@ export async function POST(
       // Client → admin + support admins: notify
       const allUsersForNotify = await getAllUsers();
       const supportAdmins = allUsersForNotify.filter(u => u.role === 'support_admin');
+      // For inbox chats (no project), find any admin to notify
+      const adminId = project?.adminId || allUsersForNotify.find(u => u.role === 'admin')?._id as string || "";
 
       // Telegram to admin — throttled
       void tgChatMessage({
         projectId,
-        projectName: project?.name ?? "General Chat",
+        projectName: project?.name ?? "General Inbox",
         senderName: sender.name,
         senderRole: "client",
-        recipientId: project?.adminId ?? "",
+        recipientId: adminId,
         messagePreview: message?.trim() || "[attachment]",
       });
 

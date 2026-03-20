@@ -618,7 +618,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [inquiryBanner, setInquiryBanner] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<
@@ -645,6 +645,7 @@ export default function ChatPage() {
 
   // ── fetch projects ──────────────────────────────────────────────────────────
   useEffect(() => {
+    if (!user?._id) return; // wait for auth to load
     const fetchProjects = async () => {
       try {
         const res = await fetch("/api/projects", {
@@ -658,14 +659,14 @@ export default function ChatPage() {
           setActiveProjectId(result.data[0]._id ?? null);
         } else {
           // No project yet — use personal inbox so client can still reach admin/AI
-          setActiveProjectId(`inbox_${user?._id}`);
+          setActiveProjectId(`inbox_${user._id}`);
         }
       } catch {
         /* ignore */
       }
     };
     fetchProjects();
-  }, []);
+  }, [user?._id]);
 
   // ── initial messages load ───────────────────────────────────────────────────
   useEffect(() => {
@@ -767,7 +768,9 @@ export default function ChatPage() {
     ticketTitle?: string;
     ticketDescription?: string;
   }) => {
-    if (!activeProjectId) return;
+    // Fallback: if activeProjectId not yet set but user is loaded, derive inbox ID
+    const resolvedProjectId = activeProjectId ?? (user?._id ? `inbox_${user._id}` : null);
+    if (!resolvedProjectId) return;
     const text = newMessage.trim();
     const isTicket = !!opts?.ticketType;
     if (!text && !isTicket && pendingAttachments.length === 0) return;
@@ -775,7 +778,7 @@ export default function ChatPage() {
     setIsSending(true);
     try {
       const body: Record<string, unknown> = {
-        projectId: activeProjectId,
+        projectId: resolvedProjectId,
         message: isTicket
           ? `Submitted a support ticket: ${opts!.ticketTitle}`
           : text,
@@ -812,6 +815,8 @@ export default function ChatPage() {
           const existingIds = new Set(prev.map((m) => m._id));
           return [...prev, ...newMsgs.filter((m) => !existingIds.has(m._id))];
         });
+        // Persist resolved inbox ID so subsequent sends don't need fallback
+        if (!activeProjectId) setActiveProjectId(resolvedProjectId);
         setNewMessage("");
         setPendingAttachments([]);
         setLastPollTime(new Date());

@@ -51,21 +51,22 @@ export async function GET(request: NextRequest) {
       inboxClients.map(async (client) => {
         const inboxId = `inbox_${client._id}`;
         const messages = await getProjectMessages(inboxId, 1);
-        if (messages.length === 0) return null;
-        const unreadCount = await getUnreadCount(inboxId, decoded.userId);
+        const unreadCount = messages.length > 0 ? await getUnreadCount(inboxId, decoded.userId) : 0;
         return {
           projectId: inboxId,
           projectName: 'General Inbox',
           clientId: client._id as string,
           clientName: client.name,
           clientAvatar: client.profilePicture || null,
-          lastMessage: { message: messages[0].message, senderName: messages[0].senderName, senderRole: messages[0].senderRole, createdAt: messages[0].createdAt },
+          lastMessage: messages.length > 0
+            ? { message: messages[0].message, senderName: messages[0].senderName, senderRole: messages[0].senderRole, createdAt: messages[0].createdAt }
+            : null,
           projectStatus: 'active',
           unreadCount,
         };
       })
     );
-    threads.push(...inboxThreads.filter(Boolean) as typeof threads);
+    threads.push(...inboxThreads as typeof threads);
 
     // Sort by most recent message first
     threads.sort((a, b) => {

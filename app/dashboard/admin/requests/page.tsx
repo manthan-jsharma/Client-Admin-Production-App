@@ -51,6 +51,7 @@ export default function AdminRequestsPage() {
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
   const [responseText, setResponseText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isAIDrafting, setIsAIDrafting] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => { fetchTickets(); }, []);
@@ -104,6 +105,21 @@ export default function AdminRequestsPage() {
       }
     } catch { notify('error', 'Failed to send response'); }
     finally { setIsSaving(false); }
+  };
+
+  const aiDraftResponse = async (ticket: Ticket) => {
+    setIsAIDrafting(true);
+    try {
+      const res = await fetch('/api/ai/ticket-draft', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: ticket.subject, description: ticket.description, type: ticket.type }),
+      });
+      const result = await res.json();
+      if (result.draft) setResponseText(result.draft);
+      else notify('error', 'AI draft failed');
+    } catch { notify('error', 'Network error'); }
+    finally { setIsAIDrafting(false); }
   };
 
   const filtered = tickets.filter(t => {
@@ -324,7 +340,16 @@ export default function AdminRequestsPage() {
                               className="w-full px-3.5 py-2.5 rounded-xl text-sm resize-none focus:outline-none transition-all"
                               style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC', color: '#334155' }}
                             />
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 flex-wrap">
+                              <button
+                                onClick={() => aiDraftResponse(ticket)}
+                                disabled={isAIDrafting}
+                                className="flex items-center gap-1.5 text-xs h-8 px-3 rounded-xl font-semibold transition-all disabled:opacity-40"
+                                style={{ background: 'linear-gradient(135deg,#8b5cf6,#7c3aed)', color: '#fff' }}
+                              >
+                                {isAIDrafting ? <div className="w-3 h-3 border-2 rounded-full animate-spin" style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'white' }} /> : <span>✨</span>}
+                                AI Draft
+                              </button>
                               <button
                                 onClick={() => sendResponse(ticket._id!)}
                                 disabled={isSaving || !responseText.trim()}

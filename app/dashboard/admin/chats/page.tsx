@@ -381,6 +381,7 @@ export default function AdminChatsPage() {
 
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [threadSearch, setThreadSearch] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesTopRef = useRef<HTMLDivElement>(null);
@@ -748,6 +749,15 @@ export default function AdminChatsPage() {
               SELECT A CONVERSATION
             </p>
           </div>
+          {/* Search */}
+          <div className="px-3 pt-3 pb-2 flex-shrink-0">
+            <input
+              value={threadSearch}
+              onChange={e => setThreadSearch(e.target.value)}
+              placeholder="Search conversations…"
+              style={{ width: '100%', padding: '7px 12px', borderRadius: 10, border: '1px solid #DDE5EC', background: '#fff', fontSize: 12, color: '#1E2A32', outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
           {isLoadingThreads ? (
             <div className="flex justify-center pt-10">
               <div
@@ -770,7 +780,11 @@ export default function AdminChatsPage() {
             </div>
           ) : (
             <div className="p-3 space-y-1">
-              {threads.map((thread) => {
+              {threads.filter(t => {
+                if (!threadSearch.trim()) return true;
+                const q = threadSearch.toLowerCase();
+                return t.projectName.toLowerCase().includes(q) || t.clientName.toLowerCase().includes(q);
+              }).map((thread) => {
                 const isSelected =
                   selectedThread?.projectId === thread.projectId;
                 return (
@@ -852,7 +866,7 @@ export default function AdminChatsPage() {
                           <FolderKanban className="w-3 h-3 flex-shrink-0" />
                           {thread.projectName}
                         </p>
-                        {thread.lastMessage && (
+                        {thread.lastMessage ? (
                           <p
                             className="text-[11px] truncate mt-0.5"
                             style={{ color: "#8A97A3" }}
@@ -861,6 +875,10 @@ export default function AdminChatsPage() {
                               ? "You: "
                               : ""}
                             {thread.lastMessage.message}
+                          </p>
+                        ) : (
+                          <p className="text-[11px] mt-0.5 italic" style={{ color: "#c0c9d0" }}>
+                            No messages yet
                           </p>
                         )}
                       </div>
