@@ -255,6 +255,16 @@ const adminMenuGroups: MenuGroup[] = [
       },
     ],
   },
+  {
+    label: "Account",
+    items: [
+      {
+        href: "/dashboard/admin/profile",
+        label: "My Profile",
+        icon: UserCircle,
+      },
+    ],
+  },
 ];
 
 type Counts = {
