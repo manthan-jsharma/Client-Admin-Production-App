@@ -3,7 +3,7 @@
 import React, { useRef, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { PageHeader } from '@/components/ui/page-header';
-import { Mail, Calendar, ShieldCheck, Camera } from 'lucide-react';
+import { Mail, Calendar, ShieldCheck, Camera, KeyRound } from 'lucide-react';
 
 const CARD: React.CSSProperties = {
   background: 'rgba(255,255,255,0.72)',
@@ -19,6 +19,29 @@ export default function AdminProfilePage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwMsg, setPwMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) { setPwMsg({ type: 'error', text: 'Passwords do not match' }); return; }
+    if (newPassword.length < 6) { setPwMsg({ type: 'error', text: 'Password must be at least 6 characters' }); return; }
+    setPwSaving(true);
+    setPwMsg(null);
+    try {
+      const res = await fetch('/api/admin/profile', {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword }),
+      });
+      const result = await res.json();
+      if (result.success) { setPwMsg({ type: 'success', text: 'Password updated' }); setNewPassword(''); setConfirmPassword(''); }
+      else setPwMsg({ type: 'error', text: result.error ?? 'Failed to update' });
+    } catch { setPwMsg({ type: 'error', text: 'Network error' }); }
+    finally { setPwSaving(false); }
+  };
 
   if (!user) return null;
 
@@ -126,6 +149,44 @@ export default function AdminProfilePage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Change Password */}
+        <div style={{ ...CARD, marginTop: 16 }} className="overflow-hidden">
+          <div className="h-[3px] bg-gradient-to-r from-blue-400 via-blue-200 to-transparent" />
+          <div className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <KeyRound style={{ width: 15, height: 15, color: '#3A8DDE' }} />
+              <h3 style={{ fontSize: 13, fontWeight: 700, color: '#1E2A32' }}>Change Password</h3>
+            </div>
+            <form onSubmit={handlePasswordChange} className="flex flex-col gap-3">
+              <input
+                type="password"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                placeholder="New password"
+                className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none"
+                style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC', color: '#1E2A32' }}
+              />
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+                className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none"
+                style={{ background: 'rgba(58,141,222,0.06)', border: '1px solid #DDE5EC', color: '#1E2A32' }}
+              />
+              {pwMsg && <p style={{ fontSize: 12, color: pwMsg.type === 'success' ? '#6BCF7A' : '#ef4444' }}>{pwMsg.text}</p>}
+              <button
+                type="submit"
+                disabled={pwSaving || !newPassword || !confirmPassword}
+                className="h-9 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
+                style={{ background: '#3A8DDE', color: '#fff' }}
+              >
+                {pwSaving ? 'Saving…' : 'Update Password'}
+              </button>
+            </form>
           </div>
         </div>
       </div>
