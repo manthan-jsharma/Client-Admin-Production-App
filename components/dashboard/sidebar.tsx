@@ -30,6 +30,7 @@ import {
   Search,
   X,
   Code2,
+  Sparkles,
 } from "lucide-react";
 
 type BadgeKey = "pendingClients" | "openTickets" | "unreadMessages";
@@ -58,6 +59,11 @@ const clientMenuGroups: MenuGroup[] = [
         href: "/dashboard/client/projects",
         label: "Projects",
         icon: FolderKanban,
+      },
+      {
+        href: "/dashboard/client/ai-notify",
+        label: "AI Notify",
+        icon: Sparkles, // Ensure Sparkles is imported from lucide-react
       },
       { href: "/dashboard/client/roadmap", label: "Roadmap", icon: Map },
       { href: "/dashboard/client/setup", label: "Setup", icon: Settings2 },
