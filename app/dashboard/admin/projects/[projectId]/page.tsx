@@ -1784,7 +1784,7 @@ export default function AdminProjectDetailPage() {
                         className="text-sm font-medium"
                         style={{ color: "#334155" }}
                       >
-                        Team Selfie Video
+                        Selfie Video
                       </label>
                       {project.teamSelfieVideoS3Key ? (
                         <span
