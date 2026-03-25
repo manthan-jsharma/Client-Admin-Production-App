@@ -640,3 +640,18 @@ export async function sendSupportAdminUpdated(u: {
     html
   );
 }
+
+// ─── Client Account Deleted ───────────────────────────────────────────────────
+
+export async function sendClientAccountDeleted(client: { name: string; email: string }) {
+  const html = wrap(
+    "Account Removed",
+    `
+    ${heading("Your Account Has Been Removed")}
+    ${para(`Hi ${client.name}, we're writing to let you know that your AI APP LABS account has been permanently deleted by an administrator.`)}
+    ${infoBox("All your data, projects, and associated records have been removed from our platform.", "#fff7ed", "#fed7aa", "#9a3412")}
+    ${para("If you believe this was a mistake or have questions, please reply to this email and we'll look into it.")}
+  `
+  );
+  await send(client.email, "Your AI APP LABS account has been removed", html);
+}

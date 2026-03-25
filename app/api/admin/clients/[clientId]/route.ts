@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminUpdateClient, getUserById, deleteUser } from '@/lib/db';
 import { verifyToken, extractToken, isValidUrl } from '@/lib/auth';
+import { sendClientAccountDeleted } from '@/lib/email';
 
 export async function PATCH(
   request: NextRequest,
@@ -72,8 +73,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     const { clientId } = await params;
+    const client = await getUserById(clientId);
+    if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     const ok = await deleteUser(clientId);
     if (!ok) return NextResponse.json({ error: 'Failed to delete client' }, { status: 500 });
+    void sendClientAccountDeleted({ name: client.name, email: client.email });
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
