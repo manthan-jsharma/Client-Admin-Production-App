@@ -465,6 +465,13 @@ export async function deleteUser(id: string): Promise<boolean> {
   return !error;
 }
 
+export async function migrateInboxToProject(clientId: string, projectId: string): Promise<void> {
+  await supabase
+    .from('chat_messages')
+    .update({ channel_id: projectId, project_id: projectId })
+    .eq('channel_id', `inbox_${clientId}`);
+}
+
 export async function deleteClientCascade(clientId: string): Promise<boolean> {
   try {
     // 1. Null out chat message sender attribution (sender_id is nullable)

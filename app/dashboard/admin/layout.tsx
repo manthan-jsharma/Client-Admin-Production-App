@@ -24,7 +24,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (!isLoading) {
-      if (!isAuthenticated) router.push('/login');
+      if (!isAuthenticated) router.push('/admin-login');
       else if (user && user.role !== 'admin' && user.role !== 'support_admin') router.push('/dashboard/client');
     }
   }, [isAuthenticated, user, isLoading, router]);

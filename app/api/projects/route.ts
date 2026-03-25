@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, extractToken } from '@/lib/auth';
-import { getProjectsByUserId, createProject } from '@/lib/db';
+import { getProjectsByUserId, createProject, migrateInboxToProject } from '@/lib/db';
 import { Project, ApiResponse } from '@/lib/types';
 
 export async function GET(request: NextRequest): Promise<NextResponse<ApiResponse<Project[]>>> {
@@ -107,6 +107,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     // Patch roadmap projectId after project has its _id
     if (project.roadmap.length > 0) {
       project.roadmap.forEach(r => { r.projectId = project._id!; });
+    }
+
+    // If this is the client's first project, migrate inbox messages into it
+    const existingProjects = await getProjectsByUserId(clientId, 'client');
+    const isFirstProject = existingProjects.filter(p => p._id !== project._id).length === 0;
+    if (isFirstProject && project._id) {
+      await migrateInboxToProject(clientId, project._id);
     }
 
     return NextResponse.json(
