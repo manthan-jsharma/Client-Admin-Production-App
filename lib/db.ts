@@ -465,6 +465,26 @@ export async function deleteUser(id: string): Promise<boolean> {
   return !error;
 }
 
+export async function deleteClientCascade(clientId: string): Promise<boolean> {
+  try {
+    // 1. Null out chat message sender attribution (sender_id is nullable)
+    await supabase.from('chat_messages').update({ sender_id: null }).eq('sender_id', clientId);
+    // 2. Delete records with NOT NULL client_id (can't SET NULL, must delete)
+    await supabase.from('tickets').delete().eq('client_id', clientId);
+    await supabase.from('testimonials').delete().eq('client_id', clientId);
+    await supabase.from('maintenance_feedback').delete().eq('client_id', clientId);
+    await supabase.from('referrals').delete().eq('referred_by_user_id', clientId);
+    await supabase.from('lead_gen_requests').delete().eq('client_id', clientId);
+    // 3. Delete projects — cascades to deliveries, roadmap_items, setup_items, payments, dev_payments
+    await supabase.from('projects').delete().eq('client_id', clientId);
+    // 4. Finally delete the user
+    const { error } = await supabase.from('users').delete().eq('id', clientId);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
 export async function createUser(user: User): Promise<User> {
   const insertRow: Record<string, unknown> = {
     email: user.email,

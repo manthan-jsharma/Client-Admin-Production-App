@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminUpdateClient, getUserById, deleteUser } from '@/lib/db';
+import { adminUpdateClient, getUserById, deleteClientCascade } from '@/lib/db';
 import { verifyToken, extractToken, isValidUrl } from '@/lib/auth';
 import { sendClientAccountDeleted } from '@/lib/email';
 
@@ -75,7 +75,7 @@ export async function DELETE(
     const { clientId } = await params;
     const client = await getUserById(clientId);
     if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 });
-    const ok = await deleteUser(clientId);
+    const ok = await deleteClientCascade(clientId);
     if (!ok) return NextResponse.json({ error: 'Failed to delete client' }, { status: 500 });
     void sendClientAccountDeleted({ name: client.name, email: client.email });
     return NextResponse.json({ success: true });
