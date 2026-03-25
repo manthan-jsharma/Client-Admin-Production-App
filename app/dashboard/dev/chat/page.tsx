@@ -542,7 +542,7 @@ export default function DevChatPage() {
               style={{ background: "#6BCF7A" }}
             />
             <span className="text-xs font-medium" style={{ color: "#16a34a" }}>
-              Live
+              Online
             </span>
           </div>
         </div>

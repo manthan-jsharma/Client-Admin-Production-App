@@ -971,7 +971,7 @@ export default function AdminChatsPage() {
                   className="text-[10px] font-medium"
                   style={{ color: "#6BCF7A" }}
                 >
-                  Live
+                  Online
                 </span>
               </div>
             </div>

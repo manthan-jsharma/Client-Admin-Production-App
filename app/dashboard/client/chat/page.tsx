@@ -990,7 +990,7 @@ export default function ChatPage() {
                 className="text-[10px] font-bold uppercase tracking-wider"
                 style={{ color: "#6BCF7A" }}
               >
-                Live
+                Online
               </span>
             </div>
           </div>

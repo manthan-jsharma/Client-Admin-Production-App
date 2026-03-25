@@ -275,6 +275,24 @@ export async function tgAdminNewServiceInquiry(params: {
 }
 
 /** Admin: dev submitted a delivery for review */
+export async function tgClientRevisionRequested(params: {
+  clientName: string;
+  projectName: string;
+  deliveryTitle: string;
+  projectId: string;
+  feedback?: string;
+}): Promise<void> {
+  const lines = [
+    `🔁 ${bold('Client requested revision')}`,
+    `Project: ${bold(params.projectName)}`,
+    `Client: ${params.clientName}`,
+    `Delivery: ${bold(params.deliveryTitle)}`,
+  ];
+  if (params.feedback) lines.push(`Feedback: "${params.feedback}"`);
+  lines.push(link('View delivery →', `${APP}/dashboard/admin/projects/${params.projectId}`));
+  await notifyAllAdmins(lines.join('\n'));
+}
+
 export async function tgDevDeliverySubmitted(params: {
   devName: string;
   projectName: string;

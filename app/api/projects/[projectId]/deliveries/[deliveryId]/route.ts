@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, extractToken } from '@/lib/auth';
 import { getProjectById, getDeliveryById, updateDelivery, deleteDelivery, getUserById } from '@/lib/db';
-import { tgDeliveryReady, tgDeliveryApproved } from '@/lib/telegram';
+import { tgDeliveryReady, tgDeliveryApproved, tgClientRevisionRequested } from '@/lib/telegram';
 
 // PATCH /api/projects/[projectId]/deliveries/[deliveryId]
 // Admin: update proof, adminNotes, status
@@ -55,6 +55,18 @@ export async function PATCH(
     }
 
     const updated = await updateDelivery(deliveryId, updates);
+
+    // Client requested revision → notify admin/dev/support_admin
+    if (payload.role === 'client' && body.action === 'request_revision') {
+      const clientUser = await getUserById(payload.userId);
+      void tgClientRevisionRequested({
+        clientName: clientUser?.name ?? 'Client',
+        projectName: project.name,
+        deliveryTitle: delivery.title,
+        projectId,
+        feedback: body.clientFeedback,
+      });
+    }
 
     if (payload.role === 'admin' || payload.role === 'support_admin') {
       // Admin/Support admin sent delivery for review → notify client via Telegram
