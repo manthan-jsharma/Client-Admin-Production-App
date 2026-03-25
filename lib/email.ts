@@ -55,11 +55,9 @@ function wrap(title: string, body: string): string {
 
   <!-- Header -->
   <div style="background:#0f172a;border-radius:12px 12px 0 0;padding:22px 32px;display:flex;align-items:center;gap:12px;">
-    <div style="width:34px;height:34px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
-      <span style="color:#fff;font-weight:800;font-size:16px;line-height:1;">B</span>
-    </div>
-    <img src="https://clientportal.cgramm.org/icon.svg" alt="AI APP LABS" width="34" height="34" 
+    <img src="https://clientportal.cgramm.org/icon.svg" alt="AI APP LABS" width="34" height="34"
     style="width:34px;height:34px;border-radius:8px;display:block;flex-shrink:0;" />
+    <span style="color:#fff;font-size:18px;font-weight:700;letter-spacing:-0.3px;">AI APP LABS</span>
   </div>
 
   <!-- Body -->
