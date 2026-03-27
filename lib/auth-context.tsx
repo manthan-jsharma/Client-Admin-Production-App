@@ -34,6 +34,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (storedToken && storedUser) {
       try {
+        // Check token expiry before restoring session
+        const payload = JSON.parse(Buffer.from(storedToken.split('.')[1], 'base64').toString());
+        const now = Math.floor(Date.now() / 1000);
+        if (payload.exp && payload.exp < now) {
+          // Token expired — clear and redirect to appropriate login
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_user');
+          const role = JSON.parse(storedUser)?.role;
+          window.location.href = (role === 'admin' || role === 'support_admin') ? '/admin-login' : '/login';
+          return;
+        }
         setToken(storedToken);
         setUserState(JSON.parse(storedUser));
       } catch {

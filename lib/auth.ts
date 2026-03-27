@@ -29,7 +29,7 @@ export function createToken(payload: JWTPayload): string {
   const tokenPayload = {
     ...payload,
     iat: now,
-    exp: now + 24 * 60 * 60 // 24 hours
+    exp: now + 30 * 24 * 60 * 60 // 30 days
   };
 
   const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64url');
